@@ -4,11 +4,21 @@ const path = require('node:path')
 const {token} = require('../keys/keys.js')
 
 const {Client, Collection, GatewayIntentBits, Partials} = require('discord.js')
-//const MONITOR_CHANNEL_ID = '282170926064336907'
-//const LOG_CHANNEL_ID = '1360395141822812311'
+const MONITOR_CHANNEL_ID = '282170926064336907'
+const LOG_CHANNEL_ID = '1360395141822812311'
 
-const MONITOR_CHANNEL_ID = '1364738104640147509'
-const LOG_CHANNEL_ID = '1364738135749169172'
+//const MONITOR_CHANNEL_ID = '1364738104640147509'
+//const LOG_CHANNEL_ID = '1364738135749169172'
+
+/**
+ * @prop id
+ * @prop Guilds
+ * @prop GuildMessages
+ * @prop GuildMembers
+ * @prop DirectMessages
+ * @prop MessageContent
+ * @prop GuildMessageReactions
+ */
 
 const client = new Client({
     intents: [
@@ -37,8 +47,24 @@ client.on('messageReactionAdd', async (reaction, user) => {
         }
     }
     if (reaction.message.channel.id === MONITOR_CHANNEL_ID) {
-        const messageContent = reaction.message.content.replaceAll('@', '').replaceAll('\n', ' / ')
-        const logMessage = `${user.tag} reacted with: ${reaction.emoji.name} on: ${messageContent.substring(0, 100)}`
+        const messageContent = reaction.message.content
+            .replaceAll('@everyone', '[everyone]')
+            .replaceAll('@here', '[here]')
+            .replaceAll('\n', ' / ')
+
+        if (messageContent.includes('@')) { // Checks if the message includes a user mention
+            const userIds = messageContent.match(/<@!?(\d+)>/g); // Regex to match mentions
+            if (userIds) {
+                for (const userId of userIds) {
+                    const userTag = await fetchUserTag(userId.replace(/[<@!>]/g, ''));
+                    if (userTag) {
+                        //console.log(`User ID ${userId}: ${userTag}`);
+                    }
+                }
+            }
+        }
+
+        const logMessage = `${user.tag} reacted ${reaction.emoji.name} to: ${messageContent.substring(0, 100)}`
         const logChannel = client.channels.cache.get(LOG_CHANNEL_ID)
         if (!logChannel) {
             console.error(`Log channel with ID ${LOG_CHANNEL_ID} not found.`)
@@ -82,4 +108,14 @@ for (const file of eventFiles) {
     }
 }
 
-client.login(token)
+async function fetchUserTag(userId) {
+    try {
+        const user = await client.users.fetch(userId);
+        return user.tag;
+    } catch (error) {
+        console.error(`Error fetching user for ID ${userId}:`, error);
+        return null;
+    }
+}
+
+client.login(token).then()

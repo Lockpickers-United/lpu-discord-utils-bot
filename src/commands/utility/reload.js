@@ -13,6 +13,14 @@ module.exports = {
         const commandName = interaction.options.getString('command', true).toLowerCase();
         const command = interaction.client.commands.get(commandName);
 
+        const member = interaction.member;
+        if (!member.roles.cache.some(role => role.name === 'Mods')) {
+            return interaction.reply({
+                content: 'You can\'t do that.',
+                flags: 64 // Setting the response as ephemeral using flags
+            });
+        }
+
         if (!command) {
             return interaction.reply(`There is no command with name \`${commandName}\`!`);
         }
