@@ -1,0 +1,27 @@
+{
+  "name": "lpu-discord-utils-bot",
+  "version": "1.0.0",
+  "description": "Discord Utilities Bot",
+  "main": "src/index.js",
+  "author": "Neal Bayless",
+  "license": "MIT",
+  "dependencies": {
+    "dayjs": "^1.11.8",
+    "discord.js": "^14.11.0",
+    "firebase-admin": "^12.5.0",
+    "fuzzysort": "^2.0.4",
+    "node-cache": "^5.1.2",
+    "node-fetch": "^2.6.11",
+    "remove-accents": "^0.4.4"
+  },
+  "devDependencies": {
+    "eslint": "^8.41.0",
+    "nodemon": "^2.0.22"
+  },
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "deploy": "node src/deployCommands.js",
+    "lint": "eslint ./src"
+  }
+}
