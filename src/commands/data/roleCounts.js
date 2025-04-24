@@ -12,12 +12,12 @@ module.exports = {
         const guild = interaction.guild
         const roleCounts = {}
 
-        const member = interaction.member;
+        const member = interaction.member
         if (!member.roles.cache.some(role => role.name === 'Mods')) {
             return interaction.reply({
                 content: 'You can\'t do that.',
                 flags: 64 // Setting the response as ephemeral using flags
-            });
+            })
         }
 
         if (!guild) {

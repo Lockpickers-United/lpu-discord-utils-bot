@@ -11,7 +11,6 @@ const LOG_CHANNEL_ID = '1360395141822812311'
 //const LOG_CHANNEL_ID = '1364738135749169172'
 
 /**
- * @prop id
  * @prop Guilds
  * @prop GuildMessages
  * @prop GuildMembers
@@ -53,12 +52,12 @@ client.on('messageReactionAdd', async (reaction, user) => {
             .replaceAll('\n', ' / ')
 
         if (messageContent.includes('@')) { // Checks if the message includes a user mention
-            const userIds = messageContent.match(/<@!?(\d+)>/g); // Regex to match mentions
+            const userIds = messageContent.match(/<@!?(\d+)>/g)
             if (userIds) {
                 for (const userId of userIds) {
-                    const userTag = await fetchUserTag(userId.replace(/[<@!>]/g, ''));
+                    const userTag = await fetchUserTag(userId.replace(/[<@!>]/g, ''))
                     if (userTag) {
-                        //console.log(`User ID ${userId}: ${userTag}`);
+                        //console.log(`User ID ${userId}: ${userTag}`)
                     }
                 }
             }
@@ -110,11 +109,11 @@ for (const file of eventFiles) {
 
 async function fetchUserTag(userId) {
     try {
-        const user = await client.users.fetch(userId);
-        return user.tag;
+        const user = await client.users.fetch(userId)
+        return user.tag
     } catch (error) {
-        console.error(`Error fetching user for ID ${userId}:`, error);
-        return null;
+        console.error(`Error fetching user for ID ${userId}:`, error)
+        return null
     }
 }
 
