@@ -2,7 +2,7 @@
   "name": "lpu-discord-utils-bot",
   "version": "1.0.0",
   "description": "Discord Utilities Bot",
-  "main": "src/index.js",
+  "main": "src/lpu-discord-utils-bot.js",
   "author": "Neal Bayless",
   "license": "MIT",
   "dependencies": {
@@ -19,8 +19,8 @@
     "nodemon": "^2.0.22"
   },
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "dev": "nodemon src/lpu-discord-utils-bot.js",
+    "start": "node src/lpu-discord-utils-bot.js",
     "deploy": "node src/deployCommands.js",
     "lint": "eslint ./src"
   }

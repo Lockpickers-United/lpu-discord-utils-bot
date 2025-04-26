@@ -4,8 +4,6 @@ const path = require('node:path')
 const {token} = require('../keys/keys.js')
 
 const {Client, Collection, GatewayIntentBits, Partials} = require('discord.js')
-const MONITOR_CHANNEL_ID = '282170926064336907'
-const LOG_CHANNEL_ID = '1360395141822812311'
 
 //const MONITOR_CHANNEL_ID = '1364738104640147509'
 //const LOG_CHANNEL_ID = '1364738135749169172'
@@ -35,45 +33,7 @@ const client = new Client({
     ]
 })
 
-// Log all reactions in #announcements
-client.on('messageReactionAdd', async (reaction, user) => {
-    if (reaction.partial) {
-        try {
-            await reaction.fetch()
-        } catch (error) {
-            console.error('Error fetching the reaction:', error)
-            return
-        }
-    }
-    if (reaction.message.channel.id === MONITOR_CHANNEL_ID) {
-        const messageContent = reaction.message.content
-            .replaceAll('@everyone', '[everyone]')
-            .replaceAll('@here', '[here]')
-            .replaceAll('\n', ' / ')
 
-        if (messageContent.includes('@')) { // Checks if the message includes a user mention
-            const userIds = messageContent.match(/<@!?(\d+)>/g)
-            if (userIds) {
-                for (const userId of userIds) {
-                    const userTag = await fetchUserTag(userId.replace(/[<@!>]/g, ''))
-                    if (userTag) {
-                        //console.log(`User ID ${userId}: ${userTag}`)
-                    }
-                }
-            }
-        }
-
-        const logMessage = `${user.tag} reacted ${reaction.emoji.name} to: ${messageContent.substring(0, 100)}`
-        const logChannel = client.channels.cache.get(LOG_CHANNEL_ID)
-        if (!logChannel) {
-            console.error(`Log channel with ID ${LOG_CHANNEL_ID} not found.`)
-            return
-        }
-        logChannel.send(logMessage)
-            .then(() => console.log('Logged reaction:', logMessage))
-            .catch(console.error)
-    }
-})
 
 
 client.commands = new Collection()
@@ -107,14 +67,5 @@ for (const file of eventFiles) {
     }
 }
 
-async function fetchUserTag(userId) {
-    try {
-        const user = await client.users.fetch(userId)
-        return user.tag
-    } catch (error) {
-        console.error(`Error fetching user for ID ${userId}:`, error)
-        return null
-    }
-}
 
 client.login(token).then()
