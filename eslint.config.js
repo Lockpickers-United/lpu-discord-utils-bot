@@ -19,7 +19,6 @@ module.exports = [
             'no-empty-function': 'error',
             'no-floating-decimal': 'error',
             'no-lonely-if': 'error',
-            'no-multi-spaces': 'error',
             'no-shadow': ['error', { allow: ['err', 'resolve', 'reject'] }],
             'no-var': 'error',
             'no-undef': 'off',

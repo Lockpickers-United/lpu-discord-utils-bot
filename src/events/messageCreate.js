@@ -1,6 +1,7 @@
 const {Events} = require('discord.js')
-const getRoleCounts = require('../functions/getRoleCounts.js')
 const cleanMessage = require('../util/cleanMessage.js')
+const getRoleCounts = require('../functions/getRoleCounts.js')
+const getChannelInfo = require('../functions/getChannelInfo.js')
 
 module.exports = {
     name: Events.MessageCreate,
@@ -18,10 +19,9 @@ module.exports = {
         const messageContent = await cleanMessage(message)
 
         if (message.mentions.has(message.client.user) && !message.author.bot) {
-            // Respond to the mention
             console.log(`${message.author.username} mentioned me: ${messageContent}`)
         } else {
-            console.log('Not a mention')
+            //console.log('Not a mention')
             return
         }
 
@@ -85,9 +85,10 @@ module.exports = {
             //return
         }
 
-
         if (messageContent.includes('belt counts')) {
             await getRoleCounts(message)
+        } else if (messageContent.includes('channel info')) {
+            await getChannelInfo(message)
         }
 
 
