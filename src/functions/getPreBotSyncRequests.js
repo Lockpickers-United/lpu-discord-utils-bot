@@ -1,5 +1,7 @@
 import fs, {appendFile} from 'node:fs/promises'
 import {setDeepPush} from '../util/setDeep.js'
+import {uniqueBelts} from '../util/belts.js'
+
 import dayjs from 'dayjs'
 
 // simple sleep helper
@@ -7,10 +9,9 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-async function fetchMessagesContaining(channel, substring) {
+async function fetchMessagesContaining(channel, substring = undefined) {
 
     console.time('SyncMessages')
-
 
     const guild = channel.guild
     if (!guild) {
@@ -20,7 +21,6 @@ async function fetchMessagesContaining(channel, substring) {
     await guild.members.fetch()
 
     const admin = guild.members.cache.reduce((acc, member) => {
-
         member.roles.cache.forEach(role => {
             if (role.name === '@everyone') return
             if (role.name === 'Staff') {
@@ -39,7 +39,7 @@ async function fetchMessagesContaining(channel, substring) {
     let totalFetched = 0
 
     while (true) { // eslint-disable-line no-constant-condition
-        const options = {limit: 100}
+        const options = {limit: 100, before: '812354106768228403'}
         if (lastId) options.before = lastId
 
         const messages = await channel.messages.fetch(options)
@@ -50,11 +50,13 @@ async function fetchMessagesContaining(channel, substring) {
 
 
             if (
-                msg.content.toLowerCase().includes(substring.toLowerCase())
+                !(substring && msg.content.toLowerCase().includes(substring.toLowerCase()))
                 && !msg.content.includes('<@541073446839517194>')
                 && !admin.mods.includes(msg.author.username)
                 && !admin.bots.includes(msg.author.username)
-                && dayjs(msg.createdTimestamp).isBefore(dayjs('2025-04-01 21:14:55'))
+                && uniqueBelts.some(sub => msg.content.toLowerCase().includes(sub.toLowerCase() + ' '))
+
+                //&& dayjs(msg.createdTimestamp).isBefore(dayjs('2025-04-01 21:14:55'))
             ) {
                 //console.log(dayjs(msg.createdTimestamp).format('YYYY-MM-DD HH:mm:ss'), msg.id, msg.author.tag, msg.content)
                 matches.push(msg)
@@ -64,7 +66,6 @@ async function fetchMessagesContaining(channel, substring) {
         lastId = messages.last().id
 
         const logline = `${messages.last().id}\t${dayjs(messages.last().createdTimestamp).format('YYYY-MM-DD HH:mm:ss')}\t${messages.last().createdTimestamp}\n`
-
         try {
             await appendFile('discordMessagelog.txt', logline)
         } catch (err) {
@@ -84,25 +85,6 @@ async function fetchMessagesContaining(channel, substring) {
 }
 
 
-async function fetchFirst100Containing(channel, substring) {
-    // make sure it’s a text channel
-    if (!channel.isTextBased?.()) {
-        throw new Error('Not a text-based channel')
-    }
-
-    // fetch the most recent 100 messages
-    const messages = await channel.messages.fetch({limit: 100})
-
-
-    // filter to only those containing your substring
-    return messages
-        .filter(msg =>
-            msg.content.toLowerCase().includes(substring.toLowerCase())
-        )
-        .filter(msg => !['StickyBot#0392', 'LPUBeltBot#5324'].includes(msg.author.tag))
-}
-
-
 export async function findPreBotSyncMessages(message, channelId) {
     // get the channel
     const channel = await message.client.channels.fetch(channelId)
@@ -110,9 +92,9 @@ export async function findPreBotSyncMessages(message, channelId) {
         throw new Error('Not a text channel')
     }
 
-    const searchTerm = 'reddit'
+    //const searchTerm = 'reddit'
+    const searchTerm = undefined
     const discordMessages = await fetchMessagesContaining(channel, searchTerm)
-    //const discordMessages = await fetchFirst100Containing(channel, 'sync')
 
     // now you can inspect them
     const syncMessageData = discordMessages.reduce((acc, msg) => {
@@ -126,7 +108,7 @@ export async function findPreBotSyncMessages(message, channelId) {
     }, [])
 
     try {
-        await fs.writeFile('./preBotSyncMessageData.json', JSON.stringify(syncMessageData, null, 2))
+        await fs.writeFile('./preBotAllMessageData.json', JSON.stringify(syncMessageData, null, 2))
     } catch (err) {
         console.log(err)
     }

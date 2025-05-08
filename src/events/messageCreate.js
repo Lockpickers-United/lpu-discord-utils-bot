@@ -4,6 +4,7 @@ const getRoleCounts = require('../functions/getRoleCounts.js')
 const getChannelInfo = require('../functions/getChannelInfo.js')
 const {findSyncMessages} = require('../functions/getLPUBeltBotSyncRequests.js') //eslint-disable-line
 const {findPreBotSyncMessages} = require('../functions/getPreBotSyncRequests.js') //eslint-disable-line
+const {getModRequestsBelts} = require('../functions/getModRequestsBelts') //eslint-disable-line
 const keywords = ['belt counts', 'channel info', '@LPUBeltBot#5324 approve', 'sync requests']
 
 module.exports = {
@@ -109,7 +110,8 @@ module.exports = {
             await getChannelInfo(message)
         } else if (mentioned && messageContent.includes('sync requests')) {
             //await findSyncMessages(message, '282173282546089985')
-            await findPreBotSyncMessages(message, '282173282546089985')
+            //await findPreBotSyncMessages(message, '282173282546089985')
+            await getModRequestsBelts(message)
         }
 
 
