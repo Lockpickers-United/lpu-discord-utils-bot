@@ -9,7 +9,6 @@ module.exports = [
         rules: {
             'arrow-spacing': ['warn', { before: true, after: true }],
             'comma-style': 'error',
-            curly: ['error', 'multi-line', 'consistent'],
             'dot-location': ['error', 'property'],
             'handle-callback-err': 'off',
             'keyword-spacing': 'error',
@@ -19,7 +18,7 @@ module.exports = [
             'no-empty-function': 'error',
             'no-floating-decimal': 'error',
             'no-lonely-if': 'error',
-            'no-shadow': ['error', { allow: ['err', 'resolve', 'reject'] }],
+            // 'no-shadow': ['error', { allow: ['err', 'resolve', 'reject'] }],
             'no-var': 'error',
             'no-undef': 'off',
             'prefer-const': 'error',

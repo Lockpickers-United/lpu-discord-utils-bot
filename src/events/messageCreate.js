@@ -44,7 +44,7 @@ module.exports = {
         const messageContent = await cleanMessage(message)
 
         if (!keywords.some(substr => messageContent.includes(substr))) {
-            console.log (`No keyword found in message: ${messageContent}`)
+            //console.log (`No keyword found in message: ${messageContent}`)
             return
         }
 

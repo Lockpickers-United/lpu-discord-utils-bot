@@ -12,7 +12,8 @@
     "fuzzysort": "^2.0.4",
     "node-cache": "^5.1.2",
     "node-fetch": "^2.6.11",
-    "remove-accents": "^0.4.4"
+    "remove-accents": "^0.4.4",
+    "snoowrap": "^1.23.0"
   },
   "devDependencies": {
     "eslint": "^8.41.0",

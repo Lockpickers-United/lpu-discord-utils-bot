@@ -1,7 +1,5 @@
 import fs, {appendFile} from 'node:fs/promises'
-import {setDeepPush} from '../util/setDeep.js'
-import {uniqueBelts} from '../util/belts.js'
-import {jsonIt} from '../util/jsonIt.js'
+import {beltRoles} from '../util/belts.js'
 import dayjs from 'dayjs'
 
 // simple sleep helper
@@ -11,7 +9,7 @@ function sleep(ms) {
 
 async function fetchMessagesContaining(channel) {
 
-    console.time('SyncMessages')
+    console.time('BeltChanges')
 
     const guild = channel.guild
     if (!guild) {
@@ -20,25 +18,18 @@ async function fetchMessagesContaining(channel) {
     }
     await guild.members.fetch()
 
-    const admin = guild.members.cache.reduce((acc, member) => {
-        member.roles.cache.forEach(role => {
-            if (role.name === '@everyone') return
-            if (role.name === 'Staff') {
-                setDeepPush(acc, ['mods'], member.user.username)
-            } else if (role.name === 'Bots') {
-                setDeepPush(acc, ['bots'], member.user.username)
-            }
-        })
+    const userTags = guild.members.cache.reduce((acc, member) => {
+        acc[member.id] = {username: member.user.username, displayName: member.displayName}
         return acc
     }, {})
-
-    //console.log('admin:', admin)
 
     const matches = []
     let lastId
     let totalFetched = 0
+    let stopFlag = 0
 
     const debug = false
+
     while (true) { // eslint-disable-line no-constant-condition
         const options = {limit: 100}
         if (lastId) options.before = lastId
@@ -47,46 +38,70 @@ async function fetchMessagesContaining(channel) {
 
         if (!messages.size) break
 
+
         for (const msg of messages.values()) {
 
             msg.embeds.forEach((embed, i) => {
 
-                if (!['Role added', 'Roles updated'].some(sub => embed.title?.toLowerCase().includes(sub.toLowerCase()))) return
+                if (!['Role added', 'Roles updated', 'Role removed'].some(sub => embed.title?.toLowerCase().includes(sub.toLowerCase()))) return
                 if (debug) console.log(`- Embed #${i + 1}:`)
 
-                let cleanedRole = undefined
+                const tag = embed?.author?.name
+                const userId = embed?.footer?.text?.replace('ID: ', '').trim()
 
-                if (embed.description) {
-                    // 1) log the raw description
-                    //console.log('  Description raw:', embed.description)
+                //replace any role-mentions with the actual role name
+                const cleaned = embed.description?.replace(/<@&(\d+)>/g, (_, id) => {
+                    const role = msg.guild.roles.cache.get(id)
+                    return role ? `${role.name}` : `<unknown role ${id}>`
+                })
 
-                    // 2) replace any role-mentions with the actual role name
-                    const cleaned = embed.description.replace(/<@&(\d+)>/g, (_, id) => {
-                        const role = msg.guild.roles.cache.get(id)
-                        return role ? `@${role.name}` : `<unknown role ${id}>`
-                    })
-                    const addedMatch = cleaned.match(/\*\*Added:\*\*\s*(\S+)/)
+                let cleanedRole = cleaned
 
-                    cleanedRole = addedMatch ? addedMatch[1] : cleaned
 
-                    if (debug) console.log('  cleanedRole:', cleanedRole)
+                if (debug && embed.title === 'Roles updated') console.log('\nRoles Updated')
+
+
+                const regex = /\*\*(Added|Removed):\*\*\s([\w\s]+?\s(?:Belt|Dan))\b/g
+                const updateMatches = [...cleaned.matchAll(regex)].map(([_, action, title]) => ({action, title})) // eslint-disable-line
+                if (updateMatches.length > 0) {
+                    if (debug) console.log('updateMatches', updateMatches)
+                    const removedRole = updateMatches.find(match => match.action === 'Removed')?.title
+                    const addedRole = updateMatches.find(match => match.action === 'Added')?.title
+
+                    cleanedRole = addedRole ? addedRole : cleaned
+
+                    if (beltRoles.includes(removedRole)) {
+                        if (debug) console.log('BELT roles updated', msg.id, 'added:', addedRole, ' removed:', removedRole)
+                        stopFlag++
+                        const createdAt = dayjs(embed.timestamp ? embed.timestamp : msg.createdAt).subtract(1, 'second').toISOString()
+                        matches.push({
+                            changeType: 'removed',
+                            role: removedRole,
+                            username: userTags[userId]?.username || tag,
+                            displayName: userTags[userId]?.displayName || tag,
+                            createdAt: createdAt,
+                            userId,
+                            msgId: msg.id
+                        })
+                    }
                 }
 
+                if (debug) console.log('  cleanedRole:', cleanedRole)
                 if (debug) console.log('  User:', embed?.author?.name)
-
-                // Common properties:
                 if (debug && embed.title) console.log('  Title:', embed.title)
+                if (debug) console.log('  User:', embed?.footer?.text.replace('ID: ', '').trim())
 
-                if (debug) console.log('  User:', embed?.footer?.text.replace('ID: ','').trim())
 
-
-                if (uniqueBelts.some(sub => cleanedRole.toLowerCase().includes(sub.toLowerCase() + ' '))) {
+                if (beltRoles.includes(cleanedRole)) {
                     matches.push({
-                        id: msg.id,
-                        createdAt: embed.timestamp ? embed.timestamp : msg.createdAt,
-                        tag: embed?.author?.name,
-                        addedRole: cleanedRole,
-                        userId: embed?.footer?.text?.replace('ID: ','').trim()
+                        changeType: embed.title === 'Role removed' ? 'removed' : 'added',
+                        role: cleanedRole,
+                        username: userTags[userId]?.username || tag,
+                        displayName: userTags[userId]?.displayName || tag,
+                        createdAt: dayjs(embed.timestamp ? embed.timestamp : msg.createdAt).toISOString(),
+                        userId,
+                        msgId: msg.id
+
                     })
                 }
             })
@@ -104,10 +119,9 @@ async function fetchMessagesContaining(channel) {
         totalFetched += messages.size
         console.log(`Fetched ${totalFetched} messages`, matches.length, 'matches since ', dayjs(messages.last().createdTimestamp).format('YYYY-MM-DD'))
 
-        // pause 200ms before the next batch
-        await sleep(100)
+        await sleep(200)
 
-        if (messages.size < 100 || matches.length > 999999999) break
+        if (messages.size < 100) break
     }
 
     return matches
@@ -134,7 +148,7 @@ export async function getModRequestsBelts(message) {
 
     console.log('relevant messages found:', discordMessages.length)
 
-    console.timeEnd('SyncMessages')
+    console.timeEnd('BeltChanges')
 
     return discordMessages
 }
