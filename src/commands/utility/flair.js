@@ -45,8 +45,8 @@ module.exports = {
         }
         if (interaction.user.bot) return
         const roles = interaction.member.roles.cache
-        if (!roles.some(role => role.name === 'Mods')) {
-            console.log('User is not a mod')
+        if (!roles.some(role => (role.name === 'Mods' || role.name === 'Staff'))) {
+            console.log('User is not a mod or staff')
             await interaction.reply({content: 'You do not have permission to use this command.'})
             return
         }
@@ -88,7 +88,7 @@ module.exports = {
             return details?.messages[0]?.author?.name?.name
         }
 
-        async function setFlairRaw(subredditName, username, belt) {
+        async function setFlair(subredditName, username, belt) {
             await reddit.getMe()
             const token = reddit.accessToken
 
@@ -118,7 +118,8 @@ module.exports = {
             return json
         }
 
-        async function setFlair(subredditName, username, belt) {
+        // doesn't set cssClass for anyone other than me.
+        async function setFlairSnoo(subredditName, username, belt) { //eslint-disable-line no-unused-vars
             const {text, cssClass} = flairDetails[belt]
             await reddit.getMe()
             await reddit
@@ -150,7 +151,7 @@ module.exports = {
         }
 
         if (username) try {
-            newFlair = await setFlairRaw(subredditName, username, belt)
+            newFlair = await setFlair(subredditName, username, belt)
         } catch (err) {
             console.error('Failed to set user flair', err)
             error = 'Failed to set user flair'
