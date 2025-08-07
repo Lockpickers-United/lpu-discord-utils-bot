@@ -1,10 +1,19 @@
-/* eslint-disable no-shadow */
+const fs = require('fs')
+const dayjs = require('dayjs')
+
+const {readFile, writeFile} = fs.promises
 
 const {SlashCommandBuilder} = require('discord.js')
 const snoowrap = require('snoowrap')
 const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
 const {flairDetails} = require('../../util/flairs.js')
 const {approvedChannels, allGuilds} = require('../../data/approvedChannels.js')
+
+const {localUser, prodUser} = require('../../../keys/users.js')
+const prodEnvironment = process.env.USER !== localUser
+const dataDir = prodEnvironment
+    ? `/home/${prodUser}/discord-utils-bot-logs`
+    : `/Users/${localUser}/Documents/GitHub/lpu-discord-utils-bot/data`
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -39,6 +48,8 @@ module.exports = {
 
     async execute(interaction) {
 
+        await interaction.deferReply()
+
         if (interaction.user.username !== 'mgsecure') {
             //console.log('request from', interaction.user.username)
             //return
@@ -64,14 +75,13 @@ module.exports = {
         const conversationId = options.getString('conversation')
         const belt = options.getString('belt')
         const message = options.getString('message')
-        const {text, cssClass, defaultMessage} = flairDetails[belt]
+        const {defaultMessage} = flairDetails[belt]
 
         const subredditName = 'lockpicking'
         let username = undefined
+        let userId = undefined
         let newFlair = undefined
         let error = undefined
-
-        console.log('flair', conversationId, belt, text, cssClass, message)
 
         const reddit = new snoowrap({
             userAgent: 'modmail-sync-checker by u/mgsecure',
@@ -81,11 +91,15 @@ module.exports = {
         })
         await reddit.getMe()
 
-        async function getModmailUsername(conversationId) {
+        async function getModmailUserInfo(conversationId) {
             await reddit.getMe()
             const convo = await reddit.getNewModmailConversation(conversationId)
             const details = await convo.fetch()
-            return details?.messages[0]?.author?.name?.name
+            //console.log('details', details?.messages[0]?.author)
+            return {
+                username: details?.messages[0]?.author?.name?.name,
+                id: details?.messages[0]?.author?.name?.id
+            }
         }
 
         async function setFlair(subredditName, username, belt) {
@@ -144,9 +158,11 @@ module.exports = {
         }
 
         try {
-            username = await getModmailUsername(conversationId)
+            const userInfo = await getModmailUserInfo(conversationId)
+            userId = userInfo.id
+            username = userInfo.username
         } catch (err) {
-            console.error('Failed to get modmail username', err.error)
+            console.error('Failed to get modmail user info', err.error)
             error = err.error
         }
 
@@ -168,8 +184,40 @@ module.exports = {
             console.error('Error occurred:', error)
             await interaction.reply('Error occurred:', error)
         } else {
-            console.log(`Successfully set flair for ${username} to ${newFlair} in subreddit ${subredditName}`)
-            await interaction.reply(`Successfully set Reddit flair for u/${username} to ${belt} Belt`)
+            console.log(`Successfully set flair for ${username} to ${belt} in subreddit ${subredditName}`)
+            const logEntry = {
+                username,
+                userId,
+                belt,
+                conversationId,
+                date: dayjs().toISOString(),
+                message: message || defaultMessage,
+            }
+            try {
+                const flairLog = JSON.parse(await readFile(`${dataDir}/flairLog.json`, 'utf8'))
+                const newFlairLog = [...flairLog, logEntry]
+                await writeFile(`${dataDir}/flairLog.json`, JSON.stringify(newFlairLog, null, 2), 'utf8')
+                console.log(`Logged flair for ${username}`)
+            } catch (err) {
+                console.error('Failed to write flair log:', err)
+                await interaction.reply(`Set flair for u/${username} to ${belt} Belt but failed to write flair log.`)
+                return
+            }
+
+            try {
+                await interaction.editReply(`Successfully set Reddit flair for u/${username} to ${belt} Belt`)
+            } catch (err) {
+                console.error('Failed to edit reply:', err)
+            }
+
+            (await reddit.getNewModmailConversation(conversationId)).archive()
+                .then(() => {
+                    console.log(`Modmail conversation ${conversationId} archived successfully.`);
+                })
+                .catch(error => {
+                    console.error(`Error archiving Modmail conversation ${conversationId}:`, error);
+                })
+
         }
     }
 }
