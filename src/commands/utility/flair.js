@@ -3,7 +3,7 @@ const dayjs = require('dayjs')
 
 const {readFile, writeFile} = fs.promises
 
-const {SlashCommandBuilder} = require('discord.js')
+const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js')
 const snoowrap = require('snoowrap')
 const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
 const {flairDetails} = require('../../util/flairs.js')
@@ -76,8 +76,9 @@ module.exports = {
         const belt = options.getString('belt')
         const message = options.getString('message')
         const {defaultMessage} = flairDetails[belt]
-
         const subredditName = 'lockpicking'
+        const localLogging = false
+
         let username = undefined
         let userId = undefined
         let newFlair = undefined
@@ -182,32 +183,54 @@ module.exports = {
 
         if (error) {
             console.error('Error occurred:', error)
-            await interaction.reply('Error occurred:', error)
+            await interaction.editReply('Error occurred:', error)
         } else {
             console.log(`Successfully set flair for ${username} to ${belt} in subreddit ${subredditName}`)
-            const logEntry = {
-                username,
-                userId,
-                belt,
-                conversationId,
-                date: dayjs().toISOString(),
-                message: message || defaultMessage,
+
+            if (localLogging) {
+                const logEntry = {
+                    username,
+                    userId,
+                    belt,
+                    conversationId,
+                    date: dayjs().toISOString(),
+                    message: message || defaultMessage,
+                }
+                try {
+                    const flairLog = JSON.parse(await readFile(`${dataDir}/flairLog.json`, 'utf8'))
+                    const newFlairLog = [...flairLog, logEntry]
+                    await writeFile(`${dataDir}/flairLog.json`, JSON.stringify(newFlairLog, null, 2), 'utf8')
+                    console.log(`Logged flair for ${username}`)
+                } catch (err) {
+                    console.error('Failed to write flair log:', err)
+                    await interaction.editReply(`Set flair for u/${username} to ${belt} Belt but failed to write flair log.`)
+                    return
+                }
             }
+
             try {
-                const flairLog = JSON.parse(await readFile(`${dataDir}/flairLog.json`, 'utf8'))
-                const newFlairLog = [...flairLog, logEntry]
-                await writeFile(`${dataDir}/flairLog.json`, JSON.stringify(newFlairLog, null, 2), 'utf8')
-                console.log(`Logged flair for ${username}`)
+                const logChannel = await interaction.client.channels.fetch('647550275631972362')
+                if (!logChannel?.isTextBased()) return console.error('Log channel not text-based')
+
+                // optional safety: ensure the bot can see & send
+                const perms = logChannel.permissionsFor(interaction.client.user)
+                if (!logChannel.viewable || !perms?.has(PermissionFlagsBits.SendMessages)) {
+                    console.error('Missing access to log channel')
+                }
+                await logChannel.send(
+                    `Successfully set Reddit flair for u/${username} to ${belt} Belt`
+                )
             } catch (err) {
-                console.error('Failed to write flair log:', err)
-                await interaction.reply(`Set flair for u/${username} to ${belt} Belt but failed to write flair log.`)
+                console.error('Failed to log:', err)
+                await interaction.editReply(`Set flair for u/${username} to ${belt} Belt but failed to post log.`)
                 return
             }
 
             try {
                 await interaction.editReply(`Successfully set Reddit flair for u/${username} to ${belt} Belt`)
             } catch (err) {
-                console.error('Failed to edit reply:', err)
+                console.error('Failed to send edited reply:', err)
+                return
             }
 
             (await reddit.getNewModmailConversation(conversationId)).archive()
