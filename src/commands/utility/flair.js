@@ -3,7 +3,7 @@ const dayjs = require('dayjs')
 
 const {readFile, writeFile} = fs.promises
 
-const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js')
+const {SlashCommandBuilder, PermissionFlagsBits, MessageFlags} = require('discord.js')
 const snoowrap = require('snoowrap')
 const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
 const {flairDetails} = require('../../util/flairs.js')
@@ -48,7 +48,8 @@ module.exports = {
 
     async execute(interaction) {
 
-        await interaction.deferReply()
+        await interaction.deferReply({flags: MessageFlags.Ephemeral})
+        await interaction.editReply({content: 'Processing flair request...'})
 
         if (interaction.user.username !== 'mgsecure') {
             //console.log('request from', interaction.user.username)
@@ -58,16 +59,17 @@ module.exports = {
         const roles = interaction.member.roles.cache
         if (!roles.some(role => (role.name === 'Mods' || role.name === 'Staff'))) {
             console.log('User is not a mod or staff')
-            await interaction.reply({content: 'You do not have permission to use this command.'})
+            await interaction.editReply({content: 'You do not have permission to use this command.'})
             return
         }
         if (!allGuilds.includes(interaction.guildId)) {
             console.log('Not in an active guild')
+            await interaction.editReply({content: 'Not in an active guild.'})
             return
         }
         if (!approvedChannels[interaction.channelId.toString()]) {
             console.log('Not in an approved channel')
-            await interaction.reply({content: 'You are not in an approved channel.'})
+            await interaction.editReply({content: 'You are not in an approved channel.'})
             return
         }
 
@@ -96,7 +98,9 @@ module.exports = {
             await reddit.getMe()
             const convo = await reddit.getNewModmailConversation(conversationId)
             const details = await convo.fetch()
-            //console.log('details', details?.messages[0]?.author)
+
+            //console.log('details', details)
+
             return {
                 username: details?.messages[0]?.author?.name?.name,
                 id: details?.messages[0]?.author?.name?.id
@@ -113,7 +117,7 @@ module.exports = {
             const body = new URLSearchParams({
                 api_type: 'json',
                 name: username,
-                flair_template_id: id,
+                flair_template_id: id
             })
 
             const res = await fetch(url, {
@@ -183,7 +187,7 @@ module.exports = {
 
         if (error) {
             console.error('Error occurred:', error)
-            await interaction.editReply('Error occurred:', error)
+            await interaction.editReply('A general error occurred:', error.toString())
         } else {
             console.log(`Successfully set flair for ${username} to ${belt} in subreddit ${subredditName}`)
 
@@ -194,7 +198,7 @@ module.exports = {
                     belt,
                     conversationId,
                     date: dayjs().toISOString(),
-                    message: message || defaultMessage,
+                    message: message || defaultMessage
                 }
                 try {
                     const flairLog = JSON.parse(await readFile(`${dataDir}/flairLog.json`, 'utf8'))
@@ -212,13 +216,12 @@ module.exports = {
                 const logChannel = await interaction.client.channels.fetch('647550275631972362')
                 if (!logChannel?.isTextBased()) return console.error('Log channel not text-based')
 
-                // optional safety: ensure the bot can see & send
                 const perms = logChannel.permissionsFor(interaction.client.user)
                 if (!logChannel.viewable || !perms?.has(PermissionFlagsBits.SendMessages)) {
                     console.error('Missing access to log channel')
                 }
                 await logChannel.send(
-                    `Successfully set Reddit flair for u/${username} to ${belt} Belt`
+                    `${interaction.user.username} successfully set Reddit flair for u/${username} to ${belt} Belt`
                 )
             } catch (err) {
                 console.error('Failed to log:', err)
@@ -235,10 +238,10 @@ module.exports = {
 
             (await reddit.getNewModmailConversation(conversationId)).archive()
                 .then(() => {
-                    console.log(`Modmail conversation ${conversationId} archived successfully.`);
+                    console.log(`Modmail conversation ${conversationId} archived successfully.`)
                 })
                 .catch(error => {
-                    console.error(`Error archiving Modmail conversation ${conversationId}:`, error);
+                    console.error(`Error archiving Modmail conversation ${conversationId}:`, error)
                 })
 
         }
