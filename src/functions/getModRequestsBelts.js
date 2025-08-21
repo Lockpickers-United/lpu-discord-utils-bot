@@ -9,6 +9,8 @@ function sleep(ms) {
 
 async function fetchMessagesContaining(channel) {
 
+    console.log('Fetching messages from', channel.name)
+
     console.time('BeltChanges')
 
     const guild = channel.guild
@@ -28,7 +30,7 @@ async function fetchMessagesContaining(channel) {
     let totalFetched = 0
     let stopFlag = 0
 
-    const debug = false
+    const debug = true
 
     while (true) { // eslint-disable-line no-constant-condition
         const options = {limit: 100}

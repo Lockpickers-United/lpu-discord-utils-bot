@@ -48,7 +48,7 @@ module.exports = {
 
     async execute(interaction) {
 
-        await interaction.deferReply({flags: MessageFlags.Ephemeral})
+        await interaction.deferReply()
         await interaction.editReply({content: 'Processing flair request...'})
 
         if (interaction.user.username !== 'mgsecure') {

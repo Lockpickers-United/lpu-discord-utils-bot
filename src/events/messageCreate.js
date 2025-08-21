@@ -109,9 +109,9 @@ module.exports = {
         } else if (mentioned && messageContent.includes('channel info')) {
             await getChannelInfo(message)
         } else if (mentioned && messageContent.includes('sync requests')) {
-            //await findSyncMessages(message, '282173282546089985')
+            await findSyncMessages(message, '282173282546089985')
             //await findPreBotSyncMessages(message, '282173282546089985')
-            await getModRequestsBelts(message)
+            //await getModRequestsBelts(message)
         }
 
 

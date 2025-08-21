@@ -46,14 +46,14 @@ async function fetchMessagesContaining(channel, substring) {
         for (const msg of messages.values()) {
             if (
                 /^<@541073446839517194>\s+request/.test(msg.content)
-                //&& msg.content.includes(substring)
+                && msg.content.includes(substring)
                 && !['StickyBot#0392', 'LPUBeltBot#5324'].includes(msg.author.tag)
                 && !msg.content.includes('approve')
             ) {
                 matches.push(msg)
             }
 
-            if (dayjs(msg.createdTimestamp).isBefore(dayjs('2021-01-01'))) {
+            if (dayjs(msg.createdTimestamp).isBefore(dayjs('2023-01-01'))) {
                 tooOld = true
             }
 
