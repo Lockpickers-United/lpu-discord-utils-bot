@@ -154,12 +154,10 @@ module.exports = {
         }
 
         async function modmailReply(conversationId, belt, replyText = undefined, isAuthorHidden = true) {
-            if (!replyText) {
-                replyText = defaultMessage
-            }
+            const fullReply = !replyText ? defaultMessage : `${defaultMessage} ${replyText}`
             await reddit.getMe()
             const convo = await reddit.getNewModmailConversation(conversationId)
-            await convo.reply(replyText, isAuthorHidden, false)
+            await convo.reply(fullReply, isAuthorHidden, false)
         }
 
         try {
