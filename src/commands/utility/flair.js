@@ -3,7 +3,7 @@ const dayjs = require('dayjs')
 
 const {readFile, writeFile} = fs.promises
 
-const {SlashCommandBuilder, PermissionFlagsBits, MessageFlags} = require('discord.js')
+const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js')
 const snoowrap = require('snoowrap')
 const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
 const {flairDetails} = require('../../util/flairs.js')
@@ -79,7 +79,7 @@ module.exports = {
         const message = options.getString('message')
         const {defaultMessage} = flairDetails[belt]
         const subredditName = 'lockpicking'
-        const localLogging = false
+        const debugLogging = false
 
         let username = undefined
         let userId = undefined
@@ -137,22 +137,6 @@ module.exports = {
             return json
         }
 
-        // doesn't set cssClass for anyone other than me.
-        async function setFlairSnoo(subredditName, username, belt) { //eslint-disable-line no-unused-vars
-            const {text, cssClass} = flairDetails[belt]
-            await reddit.getMe()
-            await reddit
-                .getSubreddit(subredditName)
-                .setMultipleUserFlairs([
-                    {
-                        name: username,
-                        text: text,
-                        cssClass: cssClass
-                    }
-                ])
-            return belt
-        }
-
         async function modmailReply(conversationId, belt, replyText = undefined, isAuthorHidden = true) {
             const fullReply = !replyText ? defaultMessage : `${defaultMessage} ${replyText}`
             await reddit.getMe()
@@ -189,7 +173,7 @@ module.exports = {
         } else {
             console.log(`Successfully set flair for ${username} to ${belt} in subreddit ${subredditName}`)
 
-            if (localLogging) {
+            if (debugLogging) {
                 const logEntry = {
                     username,
                     userId,

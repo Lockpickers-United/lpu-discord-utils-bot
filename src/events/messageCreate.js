@@ -1,11 +1,9 @@
 const {Events} = require('discord.js')
 const cleanMessage = require('../util/cleanMessage.js')
-const getRoleCounts = require('../functions/getRoleCounts.js')
 const getChannelInfo = require('../functions/getChannelInfo.js')
-const {findSyncMessages} = require('../functions/getLPUBeltBotSyncRequests.js') //eslint-disable-line
-const {findPreBotSyncMessages} = require('../functions/getPreBotSyncRequests.js') //eslint-disable-line
-const {getModRequestsBelts} = require('../functions/getModRequestsBelts') //eslint-disable-line
-const keywords = ['belt counts', 'channel info', '@LPUBeltBot#5324 approve', 'sync requests']
+const {approvedChannels} = require('../data/approvedChannels.js')
+
+const keywords = ['channel info']
 
 module.exports = {
     name: Events.MessageCreate,
@@ -53,35 +51,6 @@ module.exports = {
             console.log(`${message.author.username} mentioned me: ${messageContent}`)
         }
 
-
-        const approvedChannels = {
-            '1360395141822812311': {
-                server: 'LPU',
-                serverID: lpuGuildId[0],
-                channelName: '#announcement-reactions'
-            },
-            '628607205419253781': {
-                server: 'LPU',
-                serverID: lpuGuildId[0],
-                channelName: '#bot-spam'
-            },
-            '282173282546089985': {
-                server: 'LPU',
-                serverID: lpuGuildId[0],
-                channelName: '#belt-requests'
-            },
-            '1364738104640147509': {
-                server: 'mgsecure',
-                serverID: mgGuildId[0],
-                channelName: '#one'
-            },
-            '1364738135749169172': {
-                server: 'mgsecure',
-                serverID: mgGuildId[0],
-                channelName: '#two'
-            }
-        }
-
         const approvedServerChannels = Object.keys(approvedChannels).reduce((acc, channelId) => { //eslint-disable-line
                 if (approvedChannels[channelId].serverID === message.guildId) {
                     acc[channelId] = approvedChannels[channelId]
@@ -102,19 +71,9 @@ module.exports = {
             return
         }
 
-        if (mentioned && messageContent.includes('belt counts')) {
-            await getRoleCounts(message, true)
-        } else if (messageContent.includes('@LPUBeltBot#5324 approve')) {
-            await getRoleCounts(message, false)
-        } else if (mentioned && messageContent.includes('channel info')) {
+        if (mentioned && messageContent.includes('channel info')) {
             await getChannelInfo(message)
-        } else if (mentioned && messageContent.includes('sync requests')) {
-            await findSyncMessages(message, '282173282546089985')
-            //await findPreBotSyncMessages(message, '282173282546089985')
-            //await getModRequestsBelts(message)
         }
-
-
     }
 }
 

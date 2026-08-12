@@ -11,7 +11,7 @@ node_modules
 keys
 
 /src/temp
-/src/dataOut
+/src/obsolete
 
 # Editor directories and files
 .vscode/*
