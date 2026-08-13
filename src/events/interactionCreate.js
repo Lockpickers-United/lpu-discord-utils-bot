@@ -1,9 +1,16 @@
-const {Events} = require('discord.js')
+const {Events, MessageFlags} = require('discord.js')
+const {allGuilds} = require('../data/approvedChannels')
 
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
         if (!interaction.isChatInputCommand()) return
+
+        if (!allGuilds.includes(interaction.guildId)) {
+            console.log('Not in an active guild')
+            await interaction.reply({content: 'Not in an active guild.', flags: [MessageFlags.Ephemeral]})
+            return
+        }
 
         const command = interaction.client.commands.get(interaction.commandName)
 
@@ -17,9 +24,9 @@ module.exports = {
         } catch (error) {
             console.error(error)
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true })
+                await interaction.followUp({ content: 'There was an error while executing this command!', flags: [MessageFlags.Ephemeral] })
             } else {
-                await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true })
+                await interaction.reply({ content: 'There was an error while executing this command!', flags: [MessageFlags.Ephemeral] })
             }
         }
     }

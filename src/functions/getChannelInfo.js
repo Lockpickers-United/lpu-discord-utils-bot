@@ -80,6 +80,7 @@ async function getChannelInfo(message) {
                 inline: false
             }
         )
+
     await message.reply({embeds: [embed]})
 }
 

@@ -7,7 +7,7 @@ const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js')
 const snoowrap = require('snoowrap')
 const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
 const {flairDetails} = require('../../util/flairs.js')
-const {approvedChannels, allGuilds} = require('../../data/approvedChannels.js')
+const {approvedChannels} = require('../../data/approvedChannels.js')
 
 const {localUser, prodUser} = require('../../../keys/users.js')
 const prodEnvironment = process.env.USER !== localUser
@@ -60,11 +60,6 @@ module.exports = {
         if (!roles.some(role => (role.name === 'Mods' || role.name === 'Staff'))) {
             console.log('User is not a mod or staff')
             await interaction.editReply({content: 'You do not have permission to use this command.'})
-            return
-        }
-        if (!allGuilds.includes(interaction.guildId)) {
-            console.log('Not in an active guild')
-            await interaction.editReply({content: 'Not in an active guild.'})
             return
         }
         if (!approvedChannels[interaction.channelId.toString()]) {

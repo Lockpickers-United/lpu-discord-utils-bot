@@ -1,4 +1,4 @@
-const {Events} = require('discord.js')
+const {Events, MessageFlags} = require('discord.js')
 const cleanMessage = require('../util/cleanMessage.js')
 const getChannelInfo = require('../functions/getChannelInfo.js')
 const {approvedChannels} = require('../data/approvedChannels.js')
@@ -58,16 +58,9 @@ module.exports = {
                 return acc
             },{})
 
-        if (!approvedChannels[message.channelId.toString()]) {
-            console.log('Not in an approved channel')
-            /*
-            await message.author.send('Not in an approved channel.\n'
-                + 'Approved channels on this server are:\n'
-                + Object.keys(approvedServerChannels).map(channelId => {
-                    return `https://discord.com/channels/${approvedServerChannels[channelId].serverID}/${channelId}`
-                }).join('\n')
-            )
-            */
+        if (!approvedServerChannels[message.channelId.toString()]) {
+            console.log('Not in an active guild')
+            await message.reply({content: 'Not in an approved channel.', flags: [MessageFlags.Ephemeral]})
             return
         }
 

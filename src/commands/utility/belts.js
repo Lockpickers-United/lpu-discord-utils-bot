@@ -1,5 +1,5 @@
-const {SlashCommandBuilder, EmbedBuilder} = require('discord.js')
-const {approvedChannels, allGuilds} = require('../../data/approvedChannels.js')
+const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
+const {approvedChannels} = require('../../data/approvedChannels.js')
 const {setDeepUnique, setDeepAdd} = require('../../util/setDeep')
 const {beltRoles, beltRoleSort} = require('../../util/belts')
 const fs = require('node:fs/promises')
@@ -23,17 +23,12 @@ module.exports = {
         const roles = interaction.member.roles.cache
         if (!roles.some(role => (role.name === 'Mods' || role.name === 'Staff'))) {
             console.log('User is not a mod or staff')
-            await interaction.editReply({content: 'You do not have permission to use this command.'})
-            return
-        }
-        if (!allGuilds.includes(interaction.guildId)) {
-            console.log('Not in an active guild')
-            await interaction.editReply({content: 'Not in an active guild.'})
+            await interaction.reply({content: 'You do not have permission to use this command.', flags: [MessageFlags.Ephemeral]})
             return
         }
         if (!approvedChannels[interaction.channelId.toString()]) {
             console.log('Not in an approved channel')
-            await interaction.editReply({content: 'You are not in an approved channel.'})
+            await interaction.reply({content: 'You are not in an approved channel.', flags: [MessageFlags.Ephemeral]})
             return
         }
 
