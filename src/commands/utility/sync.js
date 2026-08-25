@@ -41,7 +41,6 @@ module.exports = {
 
     async execute(interaction) {
 
-        if (interaction.user.bot) return
         const roles = interaction.member.roles.cache
         if (!roles.some(role => (role.name === 'Mods' || role.name === 'Staff'))) {
             console.log('User is not a mod or staff')
@@ -50,7 +49,6 @@ module.exports = {
         }
 
         const check = await isValidEvent(interaction)
-
         if (!check.valid) {
             await interaction.reply({content: check.reason, flags: [MessageFlags.Ephemeral]})
             return
@@ -67,12 +65,10 @@ module.exports = {
         const transaction = await postSyncApproval(interaction)
 
         if (transaction.status === 'success') {
-
             let replyText = `Successfully set ${role} role for ${discordusername}.`
             if (transaction.message) {
                 replyText = replyText + '\n  messages: ' + transaction.message
             }
-
             await interaction.editReply({content: replyText, flags: [MessageFlags.Ephemeral]})
         } else {
             await interaction.editReply({content: transaction.error || 'An error occurred.', flags: [MessageFlags.Ephemeral]})

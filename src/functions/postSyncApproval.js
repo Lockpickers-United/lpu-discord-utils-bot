@@ -4,17 +4,18 @@ dayjs.extend(relativeTime)
 const {beltRequestChannelIds} = require('../data/approvedChannels')
 const {PermissionFlagsBits} = require('discord.js')
 
-async function postSyncApproval(event) {
+async function postSyncApproval(event, eventDetails) {
 
     const beltRequestChannelId = beltRequestChannelIds[event.guildId]
     if (!beltRequestChannelId) {
         return {status: 'error', error: `No belt request channel ID found for guildId: ${event.guildId}`}
     }
 
-    const {options} = event
-    const discordusername = options.getString('discordusername')
-    const belt = options.getString('belt')
-    const message = options.getString('message')
+    console.log('eventDetails', eventDetails)
+    const options = eventDetails?.options || event.options
+    const discordusername = options.discordusername.toString()
+    const belt = options.belt.toString()
+    const message = options.message.toString()
 
     const role = belt.includes('Dan') ? belt : `${belt} Belt`
 
@@ -77,7 +78,7 @@ async function postSyncApproval(event) {
             statusMessages = statusMessages + ' | Missing access to beltRequestsChannel'
         }
         await beltRequestsChannel.send(
-            `<@${member.id}>, <@${event.user.id}> has reviewed and synced your request. Congrats on your ${role}!`
+            `<@${member.id}>, <@${event.user.id}> has reviewed and synced your request. Congrats on your ${role}! ${message}`
         )
     } catch (err) {
         statusMessages = statusMessages + ' | failed to post announcement'

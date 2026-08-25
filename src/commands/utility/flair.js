@@ -1,13 +1,13 @@
+const {SlashCommandBuilder, PermissionFlagsBits, MessageFlags} = require('discord.js')
 const fs = require('fs')
 const dayjs = require('dayjs')
-
 const {readFile, writeFile} = fs.promises
+const postSyncApproval = require('../../functions/postSyncApproval.js')
+const isValidEvent = require('../../functions/isValidEvent')
 
-const {SlashCommandBuilder, PermissionFlagsBits} = require('discord.js')
 const snoowrap = require('snoowrap')
 const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
 const {flairDetails} = require('../../util/flairs.js')
-const {approvedChannels} = require('../../data/approvedChannels.js')
 
 const {localUser, prodUser} = require('../../../keys/users.js')
 const prodEnvironment = process.env.USER !== localUser
@@ -42,8 +42,8 @@ module.exports = {
                 ))
         .addStringOption(option =>
             option
-                .setName('message')
-                .setDescription('Mod message to include with flair change - default used if empty.')
+                .setName('discordusername')
+                .setDescription('Discord username to sync with approval. (optional)')
         ),
 
     async execute(interaction) {
@@ -51,30 +51,44 @@ module.exports = {
         await interaction.deferReply()
         await interaction.editReply({content: 'Processing flair request...'})
 
-        if (interaction.user.username !== 'mgsecure') {
-            //console.log('request from', interaction.user.username)
-            //return
-        }
-        if (interaction.user.bot) return
         const roles = interaction.member.roles.cache
         if (!roles.some(role => (role.name === 'Mods' || role.name === 'Staff'))) {
             console.log('User is not a mod or staff')
             await interaction.editReply({content: 'You do not have permission to use this command.'})
             return
         }
-        if (!approvedChannels[interaction.channelId.toString()]) {
-            console.log('Not in an approved channel')
-            await interaction.editReply({content: 'You are not in an approved channel.'})
+
+        const check = await isValidEvent(interaction)
+        if (!check.valid) {
+            await interaction.reply({content: check.reason, flags: [MessageFlags.Ephemeral]})
             return
         }
 
         const {options} = interaction
         const conversationId = options.getString('conversation')
         const belt = options.getString('belt')
-        const message = options.getString('message')
+        const role = belt.includes('Dan') ? belt : `${belt} Belt`
+        const discordUsername = options.getString('discordusername')
         const {defaultMessage} = flairDetails[belt]
         const subredditName = 'lockpicking'
+        let discordSyncMessage
         const debugLogging = false
+
+        if (discordUsername) {
+            const eventDetails = {
+                options: {
+                    belt,
+                    discordusername: discordUsername,
+                    message: ''
+                }
+            }
+
+            const transaction = await postSyncApproval(interaction, eventDetails)
+
+            if (transaction.status === 'success') {
+                discordSyncMessage = `Synced ${role} for Discord user ${discordUsername}.`
+            }
+        }
 
         let username = undefined
         let userId = undefined
@@ -93,9 +107,6 @@ module.exports = {
             await reddit.getMe()
             const convo = await reddit.getNewModmailConversation(conversationId)
             const details = await convo.fetch()
-
-            //console.log('details', details)
-
             return {
                 username: details?.messages[0]?.author?.name?.name,
                 id: details?.messages[0]?.author?.name?.id
@@ -132,8 +143,8 @@ module.exports = {
             return json
         }
 
-        async function modmailReply(conversationId, belt, replyText = undefined, isAuthorHidden = true) {
-            const fullReply = !replyText ? defaultMessage : `${defaultMessage} ${replyText}`
+        async function modmailReply(conversationId, belt, isAuthorHidden = true) {
+            const fullReply = !discordSyncMessage ? defaultMessage : `${defaultMessage} ${discordSyncMessage}`
             await reddit.getMe()
             const convo = await reddit.getNewModmailConversation(conversationId)
             await convo.reply(fullReply, isAuthorHidden, false)
@@ -156,7 +167,7 @@ module.exports = {
         }
 
         if (newFlair) try {
-            await modmailReply(conversationId, belt, message)
+            await modmailReply(conversationId, belt)
         } catch (err) {
             console.error('Failed to reply to modmail', err.error)
             error = 'Failed to reply to modmail'
@@ -175,7 +186,8 @@ module.exports = {
                     belt,
                     conversationId,
                     date: dayjs().toISOString(),
-                    message: message || defaultMessage
+                    message: defaultMessage,
+                    discordUsername
                 }
                 try {
                     const flairLog = JSON.parse(await readFile(`${dataDir}/flairLog.json`, 'utf8'))
@@ -207,7 +219,7 @@ module.exports = {
             }
 
             try {
-                await interaction.editReply(`Successfully set Reddit flair for u/${username} to ${belt} Belt`)
+                await interaction.editReply(`Successfully set Reddit flair for u/${username} to ${belt} Belt. ${discordSyncMessage ? discordSyncMessage : ''}`)
             } catch (err) {
                 console.error('Failed to send edited reply:', err)
                 return
