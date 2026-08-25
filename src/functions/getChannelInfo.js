@@ -1,4 +1,4 @@
-const {EmbedBuilder} = require('discord.js')
+const {EmbedBuilder, MessageFlags} = require('discord.js')
 const dayjs = require('dayjs')
 const relativeTime = require('dayjs/plugin/relativeTime')
 dayjs.extend(relativeTime)
@@ -19,7 +19,6 @@ async function getChannelInfo(message) {
     
     await guild.channels.fetch()
 
-    let channelCount = 0
     const allChannels = []
 
     for (const channel of guild.channels.cache.values()) {
@@ -47,14 +46,21 @@ async function getChannelInfo(message) {
             continue
         }
 
-        channelCount++
+        const lastMessageAge = dayjs(lastMessage.createdAt).fromNow(true)
+            .replace(/^an* /, '1 ')
+            .replace(/seconds*/, 'sec')
+            .replace(/minutes*/, 'min')
+            .replace(/hours*/, 'hr')
+            .replace(/months*/, 'mo')
+            .replace(/years*/, 'yr')
+            .replace('1 few', 'a few')
 
         allChannels.push({
             channelId: channel.id,
             channelName: channel.name,
             channelParent: channel.parent ? removeEmoji(channel.parent.name).trim() : 'No Category',
             lastMessageDate: dayjs(lastMessage.createdAt).format('YYYY-MM-DD'),
-            lastMessageAge: dayjs(lastMessage.createdAt).fromNow(),
+            lastMessageAge,
             createdAt: channel.createdAt
         })
     }
@@ -69,19 +75,22 @@ async function getChannelInfo(message) {
         console.log(`#${channel.channelName} (${channel.channelParent})  ${channel.lastMessageDate}  ${channel.lastMessageAge}`)
     })
 
+    let description = [`\`${'Channel'.padEnd(21)}Last Message\``]
+
+    sortedChannels.forEach(channel => {
+        description.push(`\`${channel.channelName.substring(0, 19).padEnd(21)}${channel.lastMessageAge}\``)
+    })
+
+    description = description.join('\n')
+    console.log('description length', description.length)
+    description = description.substring(0, 4096)
+
     const embed = new EmbedBuilder()
         .setColor('#0099ff')
         .setTitle('Channel Info')
-        .setDescription('logging channel details')
-        .addFields(
-            {
-                name: 'Details',
-                value: `${channelCount} channels logged to console`,
-                inline: false
-            }
-        )
+        .setDescription(description)
 
-    await message.reply({embeds: [embed]})
+    await message.reply({embeds: [embed], flags: [MessageFlags.Ephemeral]})
 }
 
 function removeEmoji(str) {

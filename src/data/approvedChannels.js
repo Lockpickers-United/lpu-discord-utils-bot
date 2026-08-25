@@ -2,6 +2,10 @@ export const lpuGuildId = '140129091796992000'
 export const mgGuildId = '1364643341240897587'
 export const allGuilds = [lpuGuildId, mgGuildId]
 
+export const beltRequestChannelIds = {
+    '140129091796992000': '282173282546089985',
+    '1364643341240897587': '1364738104640147509'
+}
 export const approvedChannels = {
     '1360395141822812311': {
         server: 'LPU',
