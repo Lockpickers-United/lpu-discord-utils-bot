@@ -1,19 +1,23 @@
+// noinspection JSCheckFunctionSignatures
+
 const {SlashCommandBuilder, PermissionFlagsBits, MessageFlags} = require('discord.js')
 const fs = require('fs')
 const dayjs = require('dayjs')
 const {readFile, writeFile} = fs.promises
-const postSyncApproval = require('../../functions/postSyncApproval.js')
 const isValidEvent = require('../../functions/isValidEvent')
+const setRedditFlair = require('../../functions/setRedditFlair.js')
+const setDiscordRole = require('../../functions/setDiscordRole')
 
 const snoowrap = require('snoowrap')
 const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
 const {flairDetails} = require('../../util/flairs.js')
-
 const {localUser, prodUser} = require('../../../keys/users.js')
 const prodEnvironment = process.env.USER !== localUser
 const dataDir = prodEnvironment
     ? `/home/${prodUser}/discord-utils-bot-logs`
     : `/Users/${localUser}/Documents/GitHub/lpu-discord-utils-bot/data`
+
+
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -38,11 +42,17 @@ module.exports = {
                     {name: 'Purple', value: 'Purple'},
                     {name: 'Brown', value: 'Brown'},
                     {name: 'Red', value: 'Red'},
-                    {name: 'Black', value: 'Black'}
+                    {name: 'Black', value: 'Black'},
+                    {name: '1st Dan', value: '1st Dan'},
+                    {name: '2nd Dan', value: '2nd Dan'},
+                    {name: '3rd Dan', value: '3rd Dan'},
+                    {name: '4th Dan', value: '4th Dan'},
+                    {name: '5th Dan', value: '5th Dan'},
+                    {name: '6th Dan', value: '6th Dan'},
                 ))
         .addStringOption(option =>
             option
-                .setName('discordusername')
+                .setName('discord-username')
                 .setDescription('Discord username to sync with approval. (optional)')
         ),
 
@@ -66,25 +76,20 @@ module.exports = {
 
         const {options} = interaction
         const conversationId = options.getString('conversation')
+        const discordUsername = options.getString('discord-username')
         const belt = options.getString('belt')
         const role = belt.includes('Dan') ? belt : `${belt} Belt`
-        const discordUsername = options.getString('discordusername')
         const {defaultMessage} = flairDetails[belt]
         const subredditName = 'lockpicking'
         let discordSyncMessage
-        const debugLogging = false
+        const debugLogging = true
 
         if (discordUsername) {
-            const eventDetails = {
-                options: {
-                    belt,
-                    discordusername: discordUsername,
-                    message: ''
-                }
+            const eventOptions = {
+                username: discordUsername,
+                belt,
             }
-
-            const transaction = await postSyncApproval(interaction, eventDetails)
-
+            const transaction = await setDiscordRole(interaction, eventOptions)
             if (transaction.status === 'success') {
                 discordSyncMessage = `Synced ${role} for Discord user ${discordUsername}.`
             }
@@ -112,37 +117,7 @@ module.exports = {
                 id: details?.messages[0]?.author?.name?.id
             }
         }
-
-        async function setFlair(subredditName, username, belt) {
-            await reddit.getMe()
-            const token = reddit.accessToken
-
-            const {id} = flairDetails[belt]
-
-            const url = `https://oauth.reddit.com/r/${subredditName}/api/selectflair`
-            const body = new URLSearchParams({
-                api_type: 'json',
-                name: username,
-                flair_template_id: id
-            })
-
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'User-Agent': reddit._config.userAgent,
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: body.toString()
-            })
-
-            const json = await res.json()
-            if (!res.ok || (json.json?.errors?.length)) {
-                throw new Error(`Flair API error: ${JSON.stringify(json.json?.errors || res.status)}`)
-            }
-            return json
-        }
-
+        
         async function modmailReply(conversationId, belt, isAuthorHidden = true) {
             const fullReply = !discordSyncMessage ? defaultMessage : `${defaultMessage} ${discordSyncMessage}`
             await reddit.getMe()
@@ -160,7 +135,7 @@ module.exports = {
         }
 
         if (username) try {
-            newFlair = await setFlair(subredditName, username, belt)
+            newFlair = await setRedditFlair(subredditName, username, belt)
         } catch (err) {
             console.error('Failed to set user flair', err)
             error = 'Failed to set user flair'

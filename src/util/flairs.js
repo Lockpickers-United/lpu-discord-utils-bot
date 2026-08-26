@@ -62,4 +62,46 @@ export const flairDetails = {
         backgroundColor: '#000000',
         id: 'd2312592-f539-11e6-ae73-0e01b56c5d32'
     },
+    '1st Dan': {
+        text: 'Black Belt 1st Dan :BlackBelt:',
+        cssClass: 'blackbelt',
+        defaultMessage: '1st Dan approved. Congratulations!',
+        backgroundColor: '#000000',
+        id: 'f69cb3ce-9bf1-11ec-b84d-3a9f4e66f49f'
+    },
+    '2nd Dan': {
+        text: 'Black Belt 2nd Dan :BlackBelt:',
+        cssClass: 'blackbelt',
+        defaultMessage: '2nd Dan approved. Congratulations!',
+        backgroundColor: '#000000',
+        id: '18e57574-9bf2-11ec-beb4-bacc87c0dd52'
+    },
+    '3rd Dan': {
+        text: 'Black Belt 3rd Dan :BlackBelt:',
+        cssClass: 'blackbelt',
+        defaultMessage: '3rd Dan approved. Congratulations!',
+        backgroundColor: '#000000',
+        id: '43e0aff0-9bf2-11ec-97b5-d608a0e120df'
+    },
+    '4th Dan': {
+        text: 'Black Belt 4th Dan :BlackBelt:',
+        cssClass: 'blackbelt',
+        defaultMessage: '4th Dan approved. Congratulations!',
+        backgroundColor: '#000000',
+        id: '5ae1edcc-9bf2-11ec-a4ed-16a38658e11a'
+    },
+    '5th Dan': {
+        text: 'Black Belt 5th Dan :BlackBelt:',
+        cssClass: 'blackbelt',
+        defaultMessage: '5th Dan approved. Congratulations!',
+        backgroundColor: '#000000',
+        id: '83d92f6a-9bf2-11ec-ac17-e20e0f63c090'
+    },
+    '6th Dan': {
+        text: 'Black Belt 6th Dan :BlackBelt:',
+        cssClass: 'blackbelt',
+        defaultMessage: '6th Dan approved. Congratulations!',
+        backgroundColor: '#000000',
+        id: 'aa3afb2a-9bf2-11ec-bffb-021447b001d8'
+    },
 }
