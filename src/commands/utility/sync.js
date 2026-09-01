@@ -95,6 +95,8 @@ module.exports = {
             message
         }
 
+
+        // TODO remove other belt/dan roles
         const transaction = platform === 'Discord'
             ? await setDiscordRole(interaction, eventOptions)
             : await setRedditFlair(subredditName, username, belt)
@@ -124,7 +126,10 @@ module.exports = {
                 replyText = replyText + '\n  messages: ' + transaction.message
             }
 
-
+            if (transaction.alert) {
+                replyText = replyText + '\n  ALERT: ' + transaction.alert
+            }
+            
             await interaction.editReply({content: replyText, flags: [MessageFlags.Ephemeral]})
         } else {
             await interaction.editReply({

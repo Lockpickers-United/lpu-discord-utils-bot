@@ -81,7 +81,9 @@ module.exports = {
         const role = belt.includes('Dan') ? belt : `${belt} Belt`
         const {defaultMessage} = flairDetails[belt]
         const subredditName = 'lockpicking'
-        let discordSyncMessage
+        let discordSyncMessage = ''
+        let discordAlert = ''
+
         const debugLogging = true
 
         if (discordUsername) {
@@ -93,6 +95,11 @@ module.exports = {
             if (transaction.status === 'success') {
                 discordSyncMessage = `Synced ${role} for Discord user ${discordUsername}.`
             }
+
+            if (transaction.alert) {
+                discordAlert = ` DISCORD ALERT: ${transaction.alert}.`
+            }
+
         }
 
         let username = undefined
@@ -194,7 +201,7 @@ module.exports = {
             }
 
             try {
-                await interaction.editReply(`Successfully set Reddit flair for u/${username} to ${belt} Belt. ${discordSyncMessage ? discordSyncMessage : ''}`)
+                await interaction.editReply(`Successfully set Reddit flair for u/${username} to ${belt} Belt. ${discordSyncMessage ? discordSyncMessage : ''} ${discordAlert}`)
             } catch (err) {
                 console.error('Failed to send edited reply:', err)
                 return

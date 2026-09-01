@@ -1,5 +1,6 @@
 const {beltRequestChannelIds} = require('../data/approvedChannels')
 const {PermissionFlagsBits} = require('discord.js')
+const {beltRoles} = require('../util/belts')
 
 async function setDiscordRole(event, eventOptions) {
 
@@ -15,7 +16,7 @@ async function setDiscordRole(event, eventOptions) {
 
     const role = belt.includes('Dan') ? belt : `${belt} Belt`
 
-    let statusMessages
+    let statusMessages = ''
 
     const members = await event.guild.members.fetch({query: username, limit: 1})
     const member = members.first()
@@ -31,8 +32,29 @@ async function setDiscordRole(event, eventOptions) {
         return acc
     }, {})
 
+    const allBeltRoleIds = beltRoles.map(role => roleIds[role]).filter(x => x)
+    allBeltRoleIds.push(roleIds['Chatter'])
+
+    const currentRoleNames = member.roles.cache
+        .filter(role => role.name !== '@everyone')
+        .map(role => role.name).filter(x => x)
+
+    const currentBeltRoles = currentRoleNames.filter(role => beltRoles.includes(role))
+    const maxBeltRole = currentBeltRoles.reduce((acc, role) => beltRoles.indexOf(role) > beltRoles.indexOf(acc) ? role : acc, null)
+
+    if (member.roles.cache.has(roleIds[role])) {
+        console.log(`User is already flagged with ${role}`)
+        statusMessages = statusMessages + ` | FYI: user was already flagged with ${role}`
+    }
+
+    const alert = beltRoles.indexOf(role) < beltRoles.indexOf(maxBeltRole)
+        ? `New belt: ${role} is lower than previous belt: ${maxBeltRole}`
+        : null
+    if (alert) console.log('ALERT:', alert)
 
     try {
+        await member.roles.remove(allBeltRoleIds)
+        console.log('Existing Belt Roles removed successfully!')
         await member.roles.add(roleIds[role])
         console.log('Role added successfully!')
     } catch (err) {
@@ -80,7 +102,7 @@ async function setDiscordRole(event, eventOptions) {
         statusMessages = statusMessages + ' | Failed to post log'
     }
 
-    return {status: 'success', message: statusMessages}
+    return {status: 'success', message: statusMessages, alert}
 
 }
 
