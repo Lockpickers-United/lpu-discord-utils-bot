@@ -1,4 +1,4 @@
-const {allGuilds, approvedChannels} = require('../data/approvedChannels')
+const {allGuilds, approvedChannels} = require('../data/config.js')
 
 async function isValidEvent(event) {
 
@@ -9,7 +9,7 @@ async function isValidEvent(event) {
         //return false
     }
 
-    if (event.user && event.user.bot) {
+    if (event.user?.bot) {
         const message = `Bot request from ${event.user.username}`
         console.error(message)
         return {valid: false, reason: 'No Bots Allowed'}
@@ -30,7 +30,6 @@ async function isValidEvent(event) {
 
     if (!approvedChannels[event.channelId.toString()]) {
         const message = 'Not in an approved channel'
-        console.error(message)
         return {valid: false, reason: message}
     }
 

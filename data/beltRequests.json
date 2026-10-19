@@ -1,0 +1,69 @@
+[
+  {
+    "status": "approved",
+    "dateAdded": "2026-10-18 07:39",
+    "id": "e1d1184b",
+    "belt": "Black Belt",
+    "userName": "mgsecure",
+    "redditUsername": "mgsecure",
+    "userId": "671828049540677682",
+    "messageId": "1561388292212269150",
+    "updatedAt": "2026-10-18 07:39",
+    "lastUpdateBy": "mgsecure",
+    "updateMessageId": "1561388351309746208",
+    "redditSynched": "Successfully set Reddit flair"
+  },
+  {
+    "status": "requested",
+    "dateAdded": "2026-10-16 10:01",
+    "id": "be5d633c",
+    "belt": "Green Belt",
+    "userName": "mgsecure",
+    "userId": "671828049540677682",
+    "messageId": "1561233663864082572",
+    "updatedAt": "2026-10-17 23:23",
+    "lastUpdateBy": "mgsecure",
+    "updateMessageId": "1561263375982526505"
+  },
+  {
+    "status": "rejected",
+    "dateAdded": "2026-10-17 10:49",
+    "id": "be5d633a",
+    "belt": "White Belt",
+    "userName": "mgsecure",
+    "userId": "671828049540677682",
+    "messageId": "1561235155765567500",
+    "updatedAt": "2026-10-17 21:31"
+  },
+  {
+    "status": "approved",
+    "dateAdded": "2026-10-17 10:42",
+    "updatedAt": "2026-10-18 10:42",
+    "id": "9818c90c",
+    "belt": "Yellow Belt",
+    "userName": "mgsecure",
+    "userId": "671828049540677682",
+    "messageId": "1561071888669605919"
+  },
+  {
+    "status": "rejected",
+    "dateAdded": "2026-10-17 12:38",
+    "id": "6015bb17",
+    "belt": "Purple Belt",
+    "userName": "mgsecure",
+    "userId": "671828049540677682",
+    "messageId": "1561101151946932317"
+  },
+  {
+    "status": "approved",
+    "dateAdded": "2026-10-17 13:44",
+    "id": "ac755f1a",
+    "belt": "White Belt",
+    "userName": "mgsecure",
+    "userId": "671828049540677682",
+    "messageId": "1561117687097196655",
+    "updatedAt": "2026-10-17 13:51",
+    "lastUpdateBy": "mgsecure",
+    "updateMessageId": "1561119488097779743"
+  }
+]

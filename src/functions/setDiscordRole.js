@@ -1,20 +1,22 @@
-const {beltRequestChannelIds} = require('../data/approvedChannels')
+const {beltRequestChannelIds} = require('../data/config.js')
+const {beltRoles} = require('../util/belts.js')
 const {PermissionFlagsBits} = require('discord.js')
-const {beltRoles} = require('../util/belts')
 
-async function setDiscordRole(event, eventOptions) {
+async function setDiscordRole(event, eventOptions, type = 'synced') {
 
     const beltRequestChannelId = beltRequestChannelIds[event.guildId]
     if (!beltRequestChannelId) {
         return {status: 'error', error: `No belt request channel ID found for guildId: ${event.guildId}`}
     }
 
+    if (!event.user) event.user = event.author
+
     const options = eventOptions || event.options
     const username = options.username.toString()
     const belt = options.belt.toString()
     const message = options.message?.toString() || ''
 
-    const role = belt.includes('Dan') ? belt : `${belt} Belt`
+    const role = ['Dan', 'Belt'].some(text => belt.includes(text)) ? belt : `${belt} Belt`
 
     let statusMessages = ''
 
@@ -79,7 +81,7 @@ async function setDiscordRole(event, eventOptions) {
             statusMessages = statusMessages + ' | Missing access to beltRequestsChannel'
         }
         await beltRequestsChannel.send(
-            `<@${member.id}>, <@${event.user.id}> has reviewed and synced your request. Congrats on your ${role}! ${message}`
+            `<@${member.id}>, <@${event.user.id}> has reviewed and ${type} your request. Congrats on your ${role}! ${message}`
         )
     } catch (err) {
         statusMessages = statusMessages + ' | failed to post announcement'
@@ -95,7 +97,7 @@ async function setDiscordRole(event, eventOptions) {
             statusMessages = statusMessages + ' | Missing access to log channel'
         }
         await logChannel.send(
-            `${event.user.username} successfully set ${role} role for ${username} on Discord.`
+            `${event.user?.username} successfully set ${role} role for ${username} on Discord.`
         )
     } catch (err) {
         console.error('Failed to log:', err)

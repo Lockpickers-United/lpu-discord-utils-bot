@@ -1,5 +1,5 @@
 const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
-const {approvedChannels} = require('../../data/approvedChannels.js')
+const {approvedChannels} = require('../../data/config.js')
 const {setDeepUnique, setDeepAdd} = require('../../util/setDeep')
 const {beltRoles, beltRoleSort} = require('../../util/belts')
 const fs = require('node:fs/promises')
@@ -17,6 +17,10 @@ module.exports = {
         const production = process.env.USER !== localUser
         const debugDir = production
             ? `/home/${prodUser}/lpu-discord-utils-bot/src/dataOut`
+            : `/Users/${localUser}/Documents/LOCKPICK/LPU-Belt-Explorer/Locky bot/Locky Junior`
+
+        const serverDir = production
+            ? `/home/${prodUser}//explore.lpubelts.com/public/data`
             : `/Users/${localUser}/Documents/LOCKPICK/LPU-Belt-Explorer/Locky bot/Locky Junior`
 
         if (interaction.user.bot) return
@@ -112,6 +116,12 @@ module.exports = {
             }, {})
 
         console.log('belts', JSON.stringify(sortedRoleCounts, null, 2))
+
+        try {
+            await fs.writeFile(`${serverDir}/discordBeltCounts.json`, JSON.stringify(sortedRoleCounts, null, 2))
+        } catch (err) {
+            console.log(err)
+        }
 
         if (debugLogging) {
             try {

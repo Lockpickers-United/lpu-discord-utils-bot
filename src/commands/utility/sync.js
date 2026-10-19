@@ -125,7 +125,6 @@ module.exports = {
             if (transaction.message) {
                 replyText = replyText + '\n  messages: ' + transaction.message
             }
-
             if (transaction.alert) {
                 replyText = replyText + '\n  ALERT: ' + transaction.alert
             }

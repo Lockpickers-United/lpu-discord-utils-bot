@@ -32,6 +32,28 @@ export const beltRoles = [
     '20th Dan',
 ]
 
+export const danAltNames = [
+    'Dan 1',
+    'Dan 2',
+    'Dan 3',
+    'Dan 4',
+    'Dan 5',
+    'Dan 6',
+    'Dan 7',
+    'Dan 8',
+    'Dan 9',
+    'Dan 10',
+    'Dan 11',
+    'Dan 12',
+    'Dan 13',
+    'Dan 14',
+    'Dan 15',
+    'Dan 16',
+    'Dan 17',
+    'Dan 18',
+    'Dan 19',
+    'Dan 20',
+]
 export const beltRoleSort = (a, b) => {
     return beltRoles.indexOf(a) - beltRoles.indexOf(b)
 }

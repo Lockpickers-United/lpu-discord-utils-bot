@@ -1,5 +1,5 @@
 const {Events, MessageFlags} = require('discord.js')
-const {allGuilds} = require('../data/approvedChannels')
+const {allGuilds} = require('../data/config')
 
 module.exports = {
     name: Events.InteractionCreate,
