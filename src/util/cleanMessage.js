@@ -2,7 +2,7 @@ async function cleanMessage(message) {
 
     let messageContent = message.content
         .replaceAll(`<@${message.client.user.id}>`, '[me]')
-        .replaceAll('\n', ' / ')
+        .replaceAll('\n', ' /// ')
 
     if (message.content.includes('@')) { // Checks if the message includes a user mention
         const userIds = messageContent.match(/<@!?(\d+)>/g)
@@ -20,6 +20,8 @@ async function cleanMessage(message) {
     return messageContent
         .replaceAll('@everyone', '[everyone]')
         .replaceAll('@here', '[here]')
+        .replaceAll(' /// ', '\n')
+
 
     async function fetchUserTag(userId) {
         try {

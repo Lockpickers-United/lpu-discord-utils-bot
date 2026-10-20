@@ -5,7 +5,7 @@ import cleanMessage from '../util/cleanMessage.js'
 import writeJsonFileAtomic from '../util/writeJsonFileAtomic.js'
 import {beltRoles, beltRoleSortReverse} from '../util/belts.js'
 import {beltRequestChannelIds} from '../data/config.js'
-import {setDeepPush} from '../util/setDeep.js'
+import {setDeepPush, setDeepAdd} from '../util/setDeep.js'
 import {getSortComparator} from '../util/sortComparators.js'
 import setDiscordRole from '../functions/setDiscordRole.js'
 import setRedditFlair from '../functions/setRedditFlair.js'
@@ -63,15 +63,13 @@ async function saveAction(action) {
         const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
         const existingRequest = beltRequests.findIndex(request => request.id === action.id)
 
-        console.log('existingRequest', existingRequest)
-        console.log('action', action)
         const newAction = {...beltRequests[existingRequest], ...action}
 
         if (existingRequest === -1 && ['requested', 'synced'].includes(action.status)) {
             beltRequests.unshift(action)
         } else if (existingRequest === -1) {
             return {error: `No request found with id ${action.id}`}
-        } else if (['approved', 'rejected', 'deleted'].includes(action.status)) {
+        } else if (['approved', 'rejected', 'deleted', 'superseded', 'replaced'].includes(action.status)) {
             if (beltRequests[existingRequest].status === action.status)
                 return {error: 'Request status was already: ' + action.status}
             beltRequests[existingRequest] = newAction
@@ -137,12 +135,40 @@ export async function handleList(requestsFile) {
         })
     })
 
-    return {requestsText, success: 'list retrieved'}
+    return {requestsText, organizedRequests, success: 'list retrieved'}
+}
+
+export async function handleStats(requestsFile) {
+    const beltRequests = JSON.parse((await fs.readFile(requestsFile, 'utf8')).toString())
+
+    const stats = beltRequests.reduce((acc, request) => {
+        const sevenDaysAgo = dayjs().subtract(7, 'day')
+        const last7Days = request.dateAdded.isAfter(sevenDaysAgo)
+
+        setDeepAdd(acc, ['belt', request.belt], 1)
+        setDeepAdd(acc, ['lastSeven', 'belt', request.belt], last7Days ? 1 : 0)
+        setDeepAdd(acc, ['status', request.status], 1)
+        setDeepAdd(acc, ['lastSeven', 'status', request.status], last7Days ? 1 : 0)
+
+        setDeepAdd(acc, ['userName', request.userName], 1)
+        setDeepAdd(acc, ['reddit', 'total'], request.redditUsername ? 1 : 0)
+        setDeepAdd(acc, ['lastSeven', 'redditTotal'], (last7Days && request.redditUsername) ? 1 : 0)
+
+        setDeepAdd(acc, ['reddit', request.belt], request.redditUsername ? 1 : 0)
+
+        return acc
+    }, {})
+
+    return {stats, success: 'stats retrieved'}
 }
 
 async function handleBeltRequest(message, requestedBelt) {
+    const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
+    const existingRequest = beltRequests.find(request => request.userId === message.author?.id
+        && request.belt === requestedBelt && request.status === 'requested')
+
     const messageContent = await cleanMessage(message)
-    const syncMatch = new RegExp('u\\/(\\w*)\\b', 'i').exec(messageContent)
+    const syncMatch = new RegExp('u\\/(\\S*)\\b', 'i').exec(messageContent)
     const redditUsername = syncMatch?.[1] ? {redditUsername: syncMatch[1]} : null
 
     const id = genHexString(8)
@@ -157,7 +183,20 @@ async function handleBeltRequest(message, requestedBelt) {
         messageId: message.id
     }
     const response = await saveAction(action)
-    return {...action, ...response}
+
+    let replaceResponse = null
+    if (existingRequest) {
+        const action = {
+            id: existingRequest.id,
+            status: 'replaced',
+            updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+            lastUpdateBy: message.author?.username,
+            updateMessageId: message.id,
+        }
+        replaceResponse = await saveAction(action)
+    }
+
+    return {...action, ...response, replaceResponse}
 }
 
 function editIsBlocked(message, existingRequest) {
@@ -196,6 +235,7 @@ async function setFlair(username, belt) {
 async function handleRequestApprove(message, id, notesText) {
     const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
     const existingRequest = beltRequests.find(request => request.id === id)
+    const currentBeltIndex = beltRoles.indexOf(existingRequest.belt)
 
     const blocked = editIsBlocked(message, existingRequest)
     if (blocked) return {error: blocked}
@@ -248,7 +288,25 @@ async function handleRequestApprove(message, id, notesText) {
         ...redditResult
     }
     const response = await saveAction(action)
-    return {replyText, ...action, ...response, ...warning, success: true}
+
+    const lowerBeltRequests = [...beltRequests]
+        .filter(request => request.userId === existingRequest.userId && request.status === 'requested')
+        .filter(request => beltRoles.indexOf(request.belt) < currentBeltIndex)
+
+    const supersededResponses = []
+    for (const index in lowerBeltRequests) {
+        const action = {
+            id: lowerBeltRequests[index].id,
+            status: 'superseded',
+            updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+            lastUpdateBy: message.author?.username,
+            updateMessageId: message.id,
+        }
+        const response = await saveAction(action)
+        supersededResponses.push(response)
+    }
+
+    return {replyText, ...action, ...response, ...warning, supersededResponses, success: true}
 }
 
 async function handleRequestReject(message, id, notesText) {
@@ -262,9 +320,8 @@ async function handleRequestReject(message, id, notesText) {
         id,
         status: 'rejected',
         updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
-        userName: message.author?.username,
-        userId: message.author?.id,
-        messageId: message.id
+        lastUpdateBy: message.author?.username,
+        updateMessageId: message.id,
     }
     const response = await saveAction(action)
 
@@ -354,18 +411,23 @@ async function handleRequestReview(message, id, deactivate = false) {
 
 async function handleSync(message) {
     const messageContent = await cleanMessage(message)
+
     const beltMatch = new RegExp(`\\sync\\s+(${alternatives})\\b`, 'i').exec(messageContent)
     let belt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
+
     if (!belt) {
-        const shortBeltMatch = new RegExp(`\\bsync\\s+(${shortAlternatives})\\s*(\\w*)`, 'i').exec(messageContent)
+        const shortBeltMatch = new RegExp(`\\bsync\\s+(${shortAlternatives})\\b`, 'i').exec(messageContent)
         belt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch?.[1].toLowerCase()] : null
     }
+
     if (!belt) {
         return {error: 'please use the format: `sync [Belt Color] [u/Reddit username]`\n'}
     }
 
-    const syncMatch = new RegExp('u\\/(\\w*)\\b', 'i').exec(messageContent)
+
+    const syncMatch = new RegExp('u\\/(\\S+)', 'i').exec(messageContent)
     const username = syncMatch?.[1] ?? null
+
     const redditUsername = username ? {redditUsername: username} : null
 
     if (!redditUsername) {
@@ -375,6 +437,7 @@ async function handleSync(message) {
     let redditResult = {}
     try {
         redditResult = await setFlair(username, belt)
+
         console.log(`Successfully set flair to ${belt}`)
     } catch (err) {
         console.error('Failed to set user flair', err)
@@ -408,7 +471,7 @@ async function handleMoreInfo(requestId) {
 
 export async function processBeltMessage(message) {
 
-    console.log = () => { /**/ }
+    //console.log = () => { /**/ }
 
     const messageContent = await cleanMessage(message)
 
@@ -424,20 +487,22 @@ export async function processBeltMessage(message) {
     const reviewerRoles = ['Staff', 'Belt Reviewer']
     const isReviewer = message.member?.roles?.cache?.some(role => reviewerRoles.includes(role.name))
 
-    const actionMatch = new RegExp('(?:^|\\s)(\\[me]|@LPUBeltBot#5324)\\s+(\\w+)\\s*(\\w*)\\s*(.*$)', 'i').exec(messageContent)
+    const actionMatch = new RegExp('(?:^|\\s)(\\[me]|@LPUBeltBot#5324)\\s+(\\w+)\\s*(\\w*)\\s*(.*)', 'is').exec(messageContent)
     console.log('actionMatch', actionMatch)
 
     //const _whichBot = actionMatch?.[1]
-    const action = actionMatch?.[2]
+    const action = actionMatch?.[2].toLowerCase()
     const id = actionMatch?.[3]
     const notes = actionMatch?.[4].trim()
     const notesText = notes?.length ? `\nNotes: ${notes}` : ''
 
-    const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\w*)`, 'i').exec(messageContent)
+    const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
     let requestedBelt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
     let evidence = beltMatch?.[2] ?? null
+
+
     if (!requestedBelt) {
-        const shortBeltMatch = new RegExp(`\\brequest\\s+(${shortAlternatives})\\s*(\\w*)`, 'i').exec(messageContent)
+        const shortBeltMatch = new RegExp(`\\brequest\\s+(${shortAlternatives})\\s*(\\S*)`, 'i').exec(messageContent)
         requestedBelt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch?.[1].toLowerCase()] : null
         evidence = shortBeltMatch?.[2] ?? null
     }
@@ -453,8 +518,11 @@ export async function processBeltMessage(message) {
                 + '`request [Belt Color] [Lock model] https://image_or_video_link_here`\n'
         } else {
             await handleBeltRequest(message, requestedBelt).then(response => {
+                const replaceText = response.replaceResponse
+                    ? `\nThis replaces your previous ${requestedBelt} request.`
+                    : ''
                 replyText = response.success
-                    ? `<@${message.author.id}> thanks for your ${requestedBelt} request!\n(id: ${response.id})`
+                    ? `<@${message.author.id}> thanks for your ${requestedBelt} request!${replaceText}\n(id: ${response.id})`
                     : `Sorry <@${message.author.id}>, your ${requestedBelt} request didn't go through. (${response.error})`
             })
         }
@@ -472,43 +540,46 @@ export async function processBeltMessage(message) {
     } else if (action === 'approve') {
         await handleRequestApprove(message, id, notesText).then(response => {
             const redditResult = response.redditUsername ? `\n${response.redditSynched}` : ''
+            const supersededText = response.supersededResponses.length > 0
+                ? `\n${response.supersededResponses.length} lower belt request(s) were closed.`
+                : ''
             replyText = response.success
-                ? `<@${response.userId}> set with role ${response.belt}.${redditResult}`
+                ? `@${response.userName} set with role ${response.belt}.${redditResult}${supersededText}`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'reject') {
         await handleRequestReject(message, id, notesText).then(response => {
             replyText = response.success
-                ? `The request from <@${response.userId}> for ${response.belt} was rejected.`
+                ? `The request from @${response.userName} for ${response.belt} was rejected.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'delete') {
         await handleRequestDelete(message, id).then(response => {
             replyText = response.success
-                ? `The request from <@${response.userId}> for ${response.belt} was deleted.`
+                ? `The request from @${response.userName} for ${response.belt} was deleted.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'pend') {
         await handleRequestPend(message, id).then(response => {
             replyText = response.success
-                ? `The request from <@${response.userId}> for ${response.belt} in now pending.`
+                ? `The request from @${response.userName} for ${response.belt} in now pending.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'review') {
         await handleRequestReview(message, id, false).then(response => {
             replyText = response.success
-                ? `Your are now reviewing the request from <@${response.userId}> for ${response.belt}.`
+                ? `Your are now reviewing the request from @${response.userName} for ${response.belt}.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'unreview') {
         await handleRequestReview(message, id, true).then(response => {
             replyText = response.success
-                ? `Your are no longer reviewing the ${response.belt} request from <@${response.userId}>.`
+                ? `Your are no longer reviewing the ${response.belt} request from @${response.userName}.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 

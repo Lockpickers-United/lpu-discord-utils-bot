@@ -41,7 +41,7 @@ module.exports = {
 
         const messageContent = await cleanMessage(message)
 
-        console.log(`${message.author.username} sent message: ${messageContent}`)
+        //console.log(`${message.author.username} sent message: ${messageContent}`)
 
         const lpuBeltBotMentioned = message.mentions.users?.has(lpuBeltBotId)
         const mentioned = message.mentions.has(message.client.user)
@@ -55,9 +55,13 @@ module.exports = {
 
         if (warnResponse && lpuBeltBotMentioned
             && beltRequestChannelId === message.channelId.toString()
-            && message.author?.username !== 'mgsecure') {
+            //&& message.author?.username !== 'mgsecure'
+            ) {
             await message.reply({
-                content: '# I\'m sorry. LPUBeltBot is out for repairs. Your request has **not** been logged. Please try again tomorrow.'
+                content: '## I\'m sorry. LPUBeltBot is out for repairs, but Locky Jr. is filling in for a bit.'
+                    + '\nTo request a belt, please use the format:\n  **@LockyJr** `request [Belt color] [Lock model] https://image_or_video_link_here`.'
+                    + '\nTo have your belt synced to Reddit, include `u/[Your Reddit Username]` in your message.'
+
             })
             return
         }
@@ -78,7 +82,7 @@ module.exports = {
 
         //console.log('messageContent', messageContent)
 
-        if (mentioned && messageContent.includes('channel info')) {
+        if (mentioned && messageContent.toLowerCase().includes('channel info')) {
             await getChannelInfo(message)
             return
         }
@@ -86,7 +90,7 @@ module.exports = {
         const reviewerRoles = ['Staff', 'Belt Reviewer']
         const isReviewer = message.member?.roles?.cache?.some(role => reviewerRoles.includes(role.name))
 
-        if (mentioned && messageContent === '[me] help') {
+        if (mentioned && messageContent.toLowerCase() === '[me] help') {
             try {
                 await message.reply({
                     content: !isReviewer ? helpText : helpText + modHelpText
@@ -97,9 +101,10 @@ module.exports = {
             return
         }
 
-        if (!allKeywords.some(substr => messageContent.includes(substr))) {
+        if (!allKeywords.some(substr => messageContent.toLowerCase().includes(substr))) {
+            /*
             const replyText = 'I\'m sorry Dave, I\'m afraid I can\'t do that.'
-                + '\nTo request a belt, please use the format:\n  `request [BELTCOLOR] [Model Of Lock] https://image_or_video_link_here`.'
+                + '\nTo request a belt, please use the format:\n `request [BELTCOLOR] [Model Of Lock] https://image_or_video_link_here`.'
                 + '\nTo have your belt synced to Reddit, include `u/[Your Reddit Username]` in your message.'
 
             try {
@@ -109,11 +114,12 @@ module.exports = {
             } catch (error) {
                 console.error('Error replying to message', error)
             }
+            */
 
             return
         }
 
-        if (mentioned && beltKeywords.some(keyword => messageContent.includes(keyword))) {
+        if (mentioned && beltKeywords.some(keyword => messageContent.toLowerCase().includes(keyword))) {
 
             const replyText = await processBeltMessage(message)
 
@@ -134,14 +140,6 @@ module.exports = {
                     throw new Error('Missing access to beltRequestsChannel')
 
                 const permissions = message.channel.permissionsFor(message.client.user)
-
-                console.log(`permissions for ${message.channel.name}`, {
-                    viewChannel: permissions?.has(PermissionFlagsBits.ViewChannel),
-                    sendMessages: permissions?.has(PermissionFlagsBits.SendMessages),
-                    readMessageHistory: permissions?.has(PermissionFlagsBits.ReadMessageHistory),
-                    embedLinks: permissions?.has(PermissionFlagsBits.EmbedLinks)
-                })
-
                 if (!permissions?.has(PermissionFlagsBits.SendMessages))
                     throw new Error(`Missing access to ${message.channel.id}`)
 

@@ -3,6 +3,8 @@ export const mgGuildId = '1364643341240897587'
 export const allGuilds = [lpuGuildId, mgGuildId]
 
 export const beltRequestsChannelId = '282173282546089985'
+export const announcementReactionsId = '1360395141822812311'
+
 export const lpuBeltBotId = '541073446839517194'
 export const lockyJrId = '1364621479131746396'
 export const mgsecureId = '671828049540677682'
@@ -22,6 +24,7 @@ export const beltRequestChannelIds = {
     '140129091796992000': beltRequestsChannelId, //lpu server, #belt-requests
     '1364643341240897587': '1364738104640147509' // mg server
 }
+
 export const approvedChannels = {
     '1360395141822812311': {
         server: 'LPU',
@@ -37,6 +40,11 @@ export const approvedChannels = {
         server: 'LPU',
         serverID: lpuGuildId,
         channelName: '#belt-requests'
+    },
+    '1508481843995869184': {
+        server: 'LPU',
+        serverID: lpuGuildId,
+        channelName: '#belt-reviewers'
     },
     '1364738104640147509': {
         server: 'mgsecure',
