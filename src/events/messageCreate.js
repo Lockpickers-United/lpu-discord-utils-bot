@@ -8,9 +8,9 @@ const {helpText, modHelpText} = require('../data/helpText.js')
 
 const keywords = ['channel info']
 const beltKeywords = [
-    'request', 'list', 'approve', 'reject', 'delete', 'pend',
-    'review', 'unreview', 'moreinfo', 'info',
-    'delete_all', 'stats', 'sync', 'help'
+    'request', 'list',
+    'approve', 'reject', 'deny', 'delete', 'pend', 'review', 'unreview', 'moreinfo', 'info', 'history',
+    'sync', 'stats', 'delete_all', 'help'
 ]
 const allKeywords = [...keywords, ...beltKeywords]
 const warnResponse = true

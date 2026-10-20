@@ -7,7 +7,8 @@ export const helpText =
     + '> `request [Belt color] [Lock model] https://image_or_video_link_here`\n'
     + '> To have your belt synced to Reddit, include `u/[Your Reddit Username]` in your message.\n'
 
-export const modHelpText = '\n**Mod Commands**\n'
+export const modHelpText =
+    '\n**Mod Commands**\n'
     + '• `list`\n'
     + '• `approve [request id]`\n'
     + '• `reject [request id]`\n'
@@ -18,7 +19,8 @@ export const modHelpText = '\n**Mod Commands**\n'
     + '• `moreinfo [request id]`   *(display all details of a request)*\n'
     + '• `info [request id]`   *(alias for `moreinfo`)*\n'
     + '• `sync [belt] [u/reddit username]`\n'
+    + '• `history [username | request id]   *(display all requests from user)*`\n'
+    + '• `stats`\n'
 
     + '\nNot yet implemented\n'
     + '• *`delete_all`*\n'
-    + '• *`stats`*\n'

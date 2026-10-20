@@ -42,6 +42,11 @@ export const sortComparators = Object.freeze({
             || beltSort(a.belt, b.belt)
             || a.fuzzy?.localeCompare(b.fuzzy)
     },
+    timeAddedDescending: (a, b) => {
+        return dayjs(b.dateAdded).valueOf() - dayjs(a.dateAdded).valueOf()
+            || beltSort(a.belt, b.belt)
+            || a.fuzzy?.localeCompare(b.fuzzy)
+    },
     voteCount: (a, b) => {
         return b.voteCount - a.voteCount
             || a.fuzzy?.localeCompare(b.fuzzy)

@@ -1,17 +1,18 @@
 import fs from 'node:fs/promises'
 import dayjs from 'dayjs'
+import snoowrap from 'snoowrap'
 import {PermissionFlagsBits, MessageFlags} from 'discord.js'
-import cleanMessage from '../util/cleanMessage.js'
-import writeJsonFileAtomic from '../util/writeJsonFileAtomic.js'
-import {beltRoles, beltRoleSortReverse} from '../util/belts.js'
-import {beltRequestChannelIds} from '../data/config.js'
-import {setDeepPush, setDeepAdd} from '../util/setDeep.js'
-import {getSortComparator} from '../util/sortComparators.js'
 import setDiscordRole from '../functions/setDiscordRole.js'
 import setRedditFlair from '../functions/setRedditFlair.js'
-import snoowrap from 'snoowrap'
-import {client_id, client_secret, refresh_token} from '../../keys/reddit-keys.js'
+import cleanMessage from '../util/cleanMessage.js'
+import writeJsonFileAtomic from '../util/writeJsonFileAtomic.js'
 import {beltRequestsFile} from '../../keys/botConfig.js'
+import {beltRequestChannelIds} from '../data/config.js'
+import {beltRoles, beltRoleSortReverse} from '../util/belts.js'
+import {setDeepPush} from '../util/setDeep.js'
+import {getSortComparator} from '../util/sortComparators.js'
+import {client_id, client_secret, refresh_token} from '../../keys/reddit-keys.js'
+import {buildRequestStats} from '../util/buildRequestStats.js'
 
 const beltStrings = beltRoles.reduce((acc, role) => {
     const alt = role.toLowerCase()
@@ -138,30 +139,6 @@ export async function handleList(requestsFile) {
     return {requestsText, organizedRequests, success: 'list retrieved'}
 }
 
-export async function handleStats(requestsFile) {
-    const beltRequests = JSON.parse((await fs.readFile(requestsFile, 'utf8')).toString())
-
-    const stats = beltRequests.reduce((acc, request) => {
-        const sevenDaysAgo = dayjs().subtract(7, 'day')
-        const last7Days = request.dateAdded.isAfter(sevenDaysAgo)
-
-        setDeepAdd(acc, ['belt', request.belt], 1)
-        setDeepAdd(acc, ['lastSeven', 'belt', request.belt], last7Days ? 1 : 0)
-        setDeepAdd(acc, ['status', request.status], 1)
-        setDeepAdd(acc, ['lastSeven', 'status', request.status], last7Days ? 1 : 0)
-
-        setDeepAdd(acc, ['userName', request.userName], 1)
-        setDeepAdd(acc, ['reddit', 'total'], request.redditUsername ? 1 : 0)
-        setDeepAdd(acc, ['lastSeven', 'redditTotal'], (last7Days && request.redditUsername) ? 1 : 0)
-
-        setDeepAdd(acc, ['reddit', request.belt], request.redditUsername ? 1 : 0)
-
-        return acc
-    }, {})
-
-    return {stats, success: 'stats retrieved'}
-}
-
 async function handleBeltRequest(message, requestedBelt) {
     const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
     const existingRequest = beltRequests.find(request => request.userId === message.author?.id
@@ -191,7 +168,7 @@ async function handleBeltRequest(message, requestedBelt) {
             status: 'replaced',
             updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
             lastUpdateBy: message.author?.username,
-            updateMessageId: message.id,
+            updateMessageId: message.id
         }
         replaceResponse = await saveAction(action)
     }
@@ -300,7 +277,7 @@ async function handleRequestApprove(message, id, notesText) {
             status: 'superseded',
             updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
             lastUpdateBy: message.author?.username,
-            updateMessageId: message.id,
+            updateMessageId: message.id
         }
         const response = await saveAction(action)
         supersededResponses.push(response)
@@ -321,7 +298,7 @@ async function handleRequestReject(message, id, notesText) {
         status: 'rejected',
         updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
         lastUpdateBy: message.author?.username,
-        updateMessageId: message.id,
+        updateMessageId: message.id
     }
     const response = await saveAction(action)
 
@@ -412,21 +389,19 @@ async function handleRequestReview(message, id, deactivate = false) {
 async function handleSync(message) {
     const messageContent = await cleanMessage(message)
 
-    const beltMatch = new RegExp(`\\sync\\s+(${alternatives})\\b`, 'i').exec(messageContent)
-    let belt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
+    const beltMatch = new RegExp(`\\sync\\s+(${alternatives})\\s+(\\S*)`, 'i').exec(messageContent)
+    let belt = beltMatch?.[1] ? beltStrings[beltMatch[1].toLowerCase()] : null
+    let username = beltMatch?.[2] ? beltMatch[2].replace('u/', '') : null
 
-    if (!belt) {
-        const shortBeltMatch = new RegExp(`\\bsync\\s+(${shortAlternatives})\\b`, 'i').exec(messageContent)
-        belt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch?.[1].toLowerCase()] : null
+    if (!belt || !username) {
+        const shortBeltMatch = new RegExp(`\\bsync\\s+(${shortAlternatives})\\s+(\\S*)`, 'i').exec(messageContent)
+        belt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch[1].toLowerCase()] : null
+        username = shortBeltMatch?.[2] ? shortBeltMatch[2].replace('u/', '') : null
     }
 
-    if (!belt) {
+    if (!belt || !username) {
         return {error: 'please use the format: `sync [Belt Color] [u/Reddit username]`\n'}
     }
-
-
-    const syncMatch = new RegExp('u\\/(\\S+)', 'i').exec(messageContent)
-    const username = syncMatch?.[1] ?? null
 
     const redditUsername = username ? {redditUsername: username} : null
 
@@ -451,8 +426,10 @@ async function handleSync(message) {
         id,
         belt,
         userName: message.author?.username,
-        ...redditUsername,
         userId: message.author?.id,
+        ...redditUsername,
+        updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+        lastUpdateBy: message.author?.username,
         messageId: message.id
     }
     const response = await saveAction(action)
@@ -468,6 +445,37 @@ async function handleMoreInfo(requestId) {
         : {error: `No request found for id ${requestId}`}
 }
 
+async function handleHistory(beltRequestsFile, target) {
+    const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
+    const existingRequest =
+        beltRequests.find(request => request.id === target)
+        ?? beltRequests.find(request => request.userName === target)
+        ?? beltRequests.find(request => request.userId === target)
+
+    const allRequests = beltRequests
+        .filter(request => request.userId === existingRequest.userId)
+        .sort((getSortComparator('timeAddedDescending')))
+        .map(request => {
+            return (
+                `${request.belt.toUpperCase()} (${request.status?.toString()})\n`
+                + ` ${'Requested'.padEnd(13)}${request.dateAdded?.toString()}\n`
+                + `${request.updatedAt ? ` ${'Updated'.padEnd(13)}${request.updatedAt?.toString()}\n` : ''}`
+                + `${request.lastUpdateBy ? ` ${'Reviewer'.padEnd(13)}${request.lastUpdateBy?.toString()}\n` : ''}`
+                + ` ${'ID'.padEnd(13)}${request.id?.toString()}\n`
+            )
+        })
+
+    return allRequests.length > 0
+        ? {
+            requestsText: `## ${existingRequest.userName?.toString()}\n`
+                + '```\n'
+                + `${allRequests.join('```\n```\n')}`
+                + '```',
+            allRequests,
+            success: 'info retrieved'
+        }
+        : {error: `No request found for id ${target}`}
+}
 
 export async function processBeltMessage(message) {
 
@@ -499,8 +507,7 @@ export async function processBeltMessage(message) {
     const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
     let requestedBelt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
     let evidence = beltMatch?.[2] ?? null
-
-
+    
     if (!requestedBelt) {
         const shortBeltMatch = new RegExp(`\\brequest\\s+(${shortAlternatives})\\s*(\\S*)`, 'i').exec(messageContent)
         requestedBelt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch?.[1].toLowerCase()] : null
@@ -548,10 +555,10 @@ export async function processBeltMessage(message) {
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
-    } else if (action === 'reject') {
+    } else if (['reject', 'deny'].some(a => a === action)) {
         await handleRequestReject(message, id, notesText).then(response => {
             replyText = response.success
-                ? `The request from @${response.userName} for ${response.belt} was rejected.`
+                ? `The request from @${response.userName} for ${response.belt} was denied.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
@@ -596,8 +603,23 @@ export async function processBeltMessage(message) {
                 ? `Successfully synced ${response.belt} for u/${response.redditUsername}.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
+
+    } else if (action === 'stats') {
+        await buildRequestStats(beltRequestsFile).then(response => {
+            replyText = response.success
+                ? response.textBlocks.map(block => `${block.name}\n${block.text}`).join('\n\n')
+                : `Sorry <@${message.author.id}>: ${response.error}`
+        })
+
+    } else if (action === 'history') {
+        await handleHistory(beltRequestsFile, id).then(response => {
+            replyText = response.success
+                ? 'History\n' + response.requestsText
+                : `Sorry <@${message.author.id}>: ${response.error}`
+        })
     }
 
+    // archive
     // purge
     // purge:all
 

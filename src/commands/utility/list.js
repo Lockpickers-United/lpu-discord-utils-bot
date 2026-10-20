@@ -1,5 +1,6 @@
 const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
 const {handleList} = require('../../functions/processBeltMessage.js')
+const {default: belts} = require('../../util/belts.js')
 const path = require('node:path')
 
 module.exports = {
@@ -42,8 +43,9 @@ module.exports = {
                             requestText += `ID: ${request.id}\n\n`
                         })
 
+                        const color = belts[userRequests.requests[0].belt.replace(' Belt', '')].color
                         const embed = new EmbedBuilder()
-                            .setColor('#0099ff')
+                            .setColor(color)
                             .setTitle(userRequests.requests[0].userName.toString())
                             .addFields(
                                 {

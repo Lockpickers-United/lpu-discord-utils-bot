@@ -54,15 +54,6 @@ export const danAltNames = [
     'Dan 19',
     'Dan 20',
 ]
-export const beltRoleSort = (a, b) => {
-    return beltRoles.indexOf(a) - beltRoles.indexOf(b)
-}
-
-export const beltRolesReverse = [...beltRoles].reverse()
-export const beltRoleSortReverse = (a, b) => {
-    return beltRolesReverse.indexOf(a) - beltRolesReverse.indexOf(b)
-}
-
 
 const belts = {
         White: {color: '#eeeeee', danPoints: 0},
@@ -187,6 +178,14 @@ export const beltSort = (a, b) => {
 }
 export const beltSortReverse = (a, b) => {
     return allBeltsReverse.indexOf(a) - allBeltsReverse.indexOf(b)
+}
+
+export const beltRoleSort = (a, b) => {
+    return beltRoles.indexOf(a) - beltRoles.indexOf(b)
+}
+export const beltRolesReverse = [...beltRoles].reverse()
+export const beltRoleSortReverse = (a, b) => {
+    return beltRolesReverse.indexOf(a) - beltRolesReverse.indexOf(b)
 }
 
 
