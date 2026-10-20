@@ -5,6 +5,7 @@ const {beltRequestChannelIds, lpuBeltBotId} = require('../data/config.js')
 const isValidEvent = require('../functions/isValidEvent.js')
 const {processBeltMessage} = require('../functions/processBeltMessage.js')
 const {helpText, modHelpText} = require('../data/helpText.js')
+const {processBotRequest} = require('../functions/processBotRequest')
 
 const keywords = ['channel info']
 const beltKeywords = [
@@ -19,6 +20,16 @@ module.exports = {
     name: Events.MessageCreate,
 
     async execute(message) {
+
+
+        const fromMe = message.author?.id === message.client.user?.id
+        const requestEmbed = message.embeds.find(embed => embed.data.title === 'New Belt Request')
+        if (fromMe && requestEmbed) {
+
+            await processBotRequest(message, requestEmbed)
+            return
+        }
+
 
         if (message.author?.bot) return
 
@@ -56,7 +67,7 @@ module.exports = {
         if (warnResponse && lpuBeltBotMentioned
             && beltRequestChannelId === message.channelId.toString()
             //&& message.author?.username !== 'mgsecure'
-            ) {
+        ) {
             await message.reply({
                 content: '## I\'m sorry. LPUBeltBot is out for repairs, but Locky Jr. is filling in for a bit.'
                     + '\nTo request a belt, please use the format:\n  **@LockyJr** `request [Belt color] [Lock model] https://image_or_video_link_here`.'
@@ -102,20 +113,6 @@ module.exports = {
         }
 
         if (!allKeywords.some(substr => messageContent.toLowerCase().includes(substr))) {
-            /*
-            const replyText = 'I\'m sorry Dave, I\'m afraid I can\'t do that.'
-                + '\nTo request a belt, please use the format:\n `request [BELTCOLOR] [Model Of Lock] https://image_or_video_link_here`.'
-                + '\nTo have your belt synced to Reddit, include `u/[Your Reddit Username]` in your message.'
-
-            try {
-                await message.reply({
-                    content: replyText
-                })
-            } catch (error) {
-                console.error('Error replying to message', error)
-            }
-            */
-
             return
         }
 

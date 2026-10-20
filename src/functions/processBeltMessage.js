@@ -36,7 +36,7 @@ const shortAlternatives = Object.keys(shortBeltStrings)
     .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     .join('|')
 
-async function announce(message, announcement) {
+export async function announce(message, announcement) {
     try {
         const beltRequestChannelId = beltRequestChannelIds[message.guildId]
         if (!beltRequestChannelId)
@@ -59,7 +59,7 @@ async function announce(message, announcement) {
     }
 }
 
-async function saveAction(action) {
+export async function saveAction(action) {
     try {
         const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
         const existingRequest = beltRequests.findIndex(request => request.id === action.id)
