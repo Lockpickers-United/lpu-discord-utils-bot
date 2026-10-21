@@ -4,6 +4,13 @@ export const allGuilds = [lpuGuildId, mgGuildId]
 
 export const beltRequestsChannelId = '282173282546089985'
 export const announcementReactionsId = '1360395141822812311'
+export const botSpamId = '628607205419253781'
+
+export const beltRequestConfig = {
+    lpuGuildId,
+    channelIds: [botSpamId, beltRequestsChannelId, announcementReactionsId],
+    webhookId: '1562548930791739543',
+}
 
 export const lpuBeltBotId = '541073446839517194'
 export const lockyJrId = '1364621479131746396'

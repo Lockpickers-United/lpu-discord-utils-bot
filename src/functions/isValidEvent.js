@@ -1,6 +1,6 @@
 const {allGuilds, approvedChannels} = require('../data/config.js')
 
-async function isValidEvent(event) {
+async function isValidEvent(event, allowBots = false) {
 
     //console.log('isValidEvent', event)
 
@@ -9,7 +9,7 @@ async function isValidEvent(event) {
         //return false
     }
 
-    if (event.user?.bot) {
+    if (!allowBots && event.user?.bot) {
         const message = `Bot request from ${event.user.username}`
         console.error(message)
         return {valid: false, reason: 'No Bots Allowed'}

@@ -32,9 +32,13 @@ module.exports = {
                         let requestText = ''
 
                         userRequests.requests?.forEach(request => {
+                            const errorText = request.status === 'error'
+                                ? `**Error**: ${request.error}\n\n`
+                                : ''
                             const reviewText = request.status === 'reviewing'
                                 ? ` (${request.reviewerName} reviewing)`
                                 : ''
+                            requestText += errorText
                             requestText += `**${request.belt}**${reviewText}\n`
                             if (request.redditUsername)
                                 requestText += `Reddit: u/${request.redditUsername}\n`
@@ -43,10 +47,12 @@ module.exports = {
                             requestText += `ID: ${request.id}\n\n`
                         })
 
-                        const color = belts[userRequests.requests[0].belt.replace(' Belt', '')].color
+                        const color = userRequests.requests[0].status !== 'error'
+                            ? belts[userRequests.requests[0].belt?.replace(' Belt', '')]?.color ?? '#bb0000'
+                            : '#bb0000'
                         const embed = new EmbedBuilder()
                             .setColor(color)
-                            .setTitle(userRequests.requests[0].userName.toString())
+                            .setTitle(userRequests.requests[0].userName?.toString() ?? '<user>')
                             .addFields(
                                 {
                                     name: ' ',

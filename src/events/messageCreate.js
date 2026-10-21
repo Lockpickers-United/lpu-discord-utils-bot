@@ -1,7 +1,7 @@
 const {Events, MessageFlags, PermissionFlagsBits} = require('discord.js')
 const cleanMessage = require('../util/cleanMessage.js')
 const getChannelInfo = require('../functions/getChannelInfo.js')
-const {beltRequestChannelIds, lpuBeltBotId} = require('../data/config.js')
+const {beltRequestChannelIds, lpuBeltBotId, beltRequestConfig} = require('../data/config.js')
 const isValidEvent = require('../functions/isValidEvent.js')
 const {processBeltMessage} = require('../functions/processBeltMessage.js')
 const {helpText, modHelpText} = require('../data/helpText.js')
@@ -21,25 +21,29 @@ module.exports = {
 
     async execute(message) {
 
-
-        const fromMe = message.author?.id === message.client.user?.id
-        const requestEmbed = message.embeds.find(embed => embed.data.title === 'New Belt Request')
-        if (fromMe && requestEmbed) {
-
-            await processBotRequest(message, requestEmbed)
-            return
-        }
-
-
-        if (message.author?.bot) return
-
-        const check = await isValidEvent(message)
-
+        const check = await isValidEvent(message, true)
         if (!check.valid) {
             //console.error('error: ', check.reason)
             //await message.reply({content: `Sorry. ${check.reason}`, flags: [MessageFlags.Ephemeral]})
             return
         }
+
+        const requestEmbed = message.embeds.find(embed => embed.data.title === 'New Belt Request')
+
+        // if (requestEmbed) console.log('requestEmbed found', message.webhookId, requestEmbed)
+
+        const acceptedRequest = (
+            message.webhookId === beltRequestConfig.webhookId
+            && message.guildId === beltRequestConfig.lpuGuildId
+            && beltRequestConfig.channelIds.includes(message.channelId)
+        )
+
+        if (acceptedRequest && requestEmbed) {
+            await processBotRequest(message, requestEmbed)
+            return
+        }
+
+        if (message.author?.bot) return
 
         const beltRequestChannelId = beltRequestChannelIds[message.guildId]
         if (!beltRequestChannelId) {

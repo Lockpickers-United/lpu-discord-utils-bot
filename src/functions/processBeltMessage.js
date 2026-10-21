@@ -66,7 +66,7 @@ export async function saveAction(action) {
 
         const newAction = {...beltRequests[existingRequest], ...action}
 
-        if (existingRequest === -1 && ['requested', 'synced'].includes(action.status)) {
+        if (existingRequest === -1 && ['requested', 'synced', 'error'].includes(action.status)) {
             beltRequests.unshift(action)
         } else if (existingRequest === -1) {
             return {error: `No request found with id ${action.id}`}
@@ -99,7 +99,7 @@ export async function saveAction(action) {
 export async function handleList(requestsFile) {
     const beltRequests = JSON.parse((await fs.readFile(requestsFile, 'utf8')).toString())
 
-    const requestsList = beltRequests.filter(request => ['requested', 'reviewing'].includes(request.status))
+    const requestsList = beltRequests.filter(request => ['requested', 'reviewing', 'error'].includes(request.status))
     if (requestsList.length === 0) {
         return {requestsText: 'Requests:\n\n**All clear!**', success: 'info retrieved'}
     }
@@ -139,14 +139,19 @@ export async function handleList(requestsFile) {
     return {requestsText, organizedRequests, success: 'list retrieved'}
 }
 
-async function handleBeltRequest(message, requestedBelt) {
+export async function handleBeltRequest({message, messageContent, userName, userId, requestedBelt, redditUsername}) {
     const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
-    const existingRequest = beltRequests.find(request => request.userId === message.author?.id
-        && request.belt === requestedBelt && request.status === 'requested')
+    const existingRequest = beltRequests
+        .find(
+            request => request.userId === userId
+                && request.belt === requestedBelt
+                && request.status === 'requested'
+        )
 
-    const messageContent = await cleanMessage(message)
     const syncMatch = new RegExp('u\\/(\\S*)\\b', 'i').exec(messageContent)
-    const redditUsername = syncMatch?.[1] ? {redditUsername: syncMatch[1]} : null
+    const redditUsernameObj = redditUsername
+        ? {redditUsername}
+        : syncMatch?.[1] ? {redditUsername: syncMatch[1]} : null
 
     const id = genHexString(8)
     const action = {
@@ -154,9 +159,9 @@ async function handleBeltRequest(message, requestedBelt) {
         dateAdded: dayjs().format('YYYY-MM-DD HH:mm'),
         id,
         belt: requestedBelt,
-        userName: message.author?.username,
-        ...redditUsername,
-        userId: message.author?.id,
+        userName,
+        userId,
+        ...redditUsernameObj,
         messageId: message.id
     }
     const response = await saveAction(action)
@@ -479,7 +484,7 @@ async function handleHistory(beltRequestsFile, target) {
 
 export async function processBeltMessage(message) {
 
-    //console.log = () => { /**/ }
+    console.log = () => { /**/ }
 
     const messageContent = await cleanMessage(message)
 
@@ -507,7 +512,7 @@ export async function processBeltMessage(message) {
     const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
     let requestedBelt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
     let evidence = beltMatch?.[2] ?? null
-    
+
     if (!requestedBelt) {
         const shortBeltMatch = new RegExp(`\\brequest\\s+(${shortAlternatives})\\s*(\\S*)`, 'i').exec(messageContent)
         requestedBelt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch?.[1].toLowerCase()] : null
@@ -524,7 +529,13 @@ export async function processBeltMessage(message) {
             replyText = 'To request a belt, please use the format:\n'
                 + '`request [Belt Color] [Lock model] https://image_or_video_link_here`\n'
         } else {
-            await handleBeltRequest(message, requestedBelt).then(response => {
+            await handleBeltRequest({
+                message,
+                messageContent,
+                requestedBelt,
+                userName: message.author.username,
+                userId: message.author.id
+            }).then(response => {
                 const replaceText = response.replaceResponse
                     ? `\nThis replaces your previous ${requestedBelt} request.`
                     : ''

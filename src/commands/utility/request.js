@@ -1,5 +1,5 @@
-const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
-const {processBeltMessage, handleList} = require('../../functions/processBeltMessage.js')
+const {SlashCommandBuilder, EmbedBuilder} = require('discord.js')
+const {handleList} = require('../../functions/processBeltMessage.js')
 const {beltRequestsFile} = require('../../../keys/botConfig.js')
 
 module.exports = {

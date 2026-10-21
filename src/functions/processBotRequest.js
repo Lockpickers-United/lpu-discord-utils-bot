@@ -1,53 +1,80 @@
-import dayjs from 'dayjs'
-import {announce, saveAction} from './processBeltMessage.js'
+import {announce, handleBeltRequest, saveAction} from './processBeltMessage.js'
 
 
 export async function processBotRequest(message, requestEmbed) {
 
-    const userName = requestEmbed?.data?.fields?.find(field => field.name === 'username')?.value
-    const guild = message.guild
-    const members = await guild.members.fetch({query: userName, limit: 1})
-    const member = members.first()
-    if (member) {
-        console.log('member lookup', member.user.username, member.user.id)
-    }
-    const belt = requestEmbed?.data?.fields?.find(field => field.name === 'belt')?.value
-    const redditUsernameVal = requestEmbed?.data?.fields?.find(field => field.name === 'redditUsername')?.value
+    console.log('processBotRequest', requestEmbed?.data?.fields)
+
+    //Deprecated, remove after testing
+    //const guild = message.guild
+    //const members = await guild.members.fetch({query: userName, limit: 1})
+    //const member = members.first()
+    //if (member) console.log('member lookup', member.user.username, member.user.id)
+
+    const fields = requestEmbed?.data?.fields || []
+    const userId = fields.find(field => field.name === 'userId')?.value
+    const userName = fields.find(field => field.name === 'userName')?.value
+    const requestedBelt = fields.find(field => field.name === 'requestedBelt')?.value
+    const messageContent = fields.find(field => field.name === 'messageContent')?.value
+
+    const redditUsernameVal = fields.find(field => field.name === 'redditUsername')?.value
     const redditUsername = redditUsernameVal ? {redditUsername: redditUsernameVal} : null
 
-    const id = genHexString(8)
-    const action = {
-        status: 'requested',
-        dateAdded: dayjs().format('YYYY-MM-DD HH:mm'),
-        id,
-        belt,
-        userName,
-        ...redditUsername,
-        userId: member?.user?.id,
-        messageId: message.id
+    try {
+        const user = await message.guild.members.fetch(userId)
+        console.log(`Found user: ${user.user.username}`)
+        if (!user) throw new Error('User not found')
+        if (user.user?.username !== userName) throw new Error('Wrong user')
+    } catch (error) {
+        console.error('User error:', error)
+        await saveAction({
+            status: 'error',
+            id: genHexString(8),
+            userId,
+            userName,
+            belt: requestedBelt,
+            error: error.message ?? error
+        })
+        return
     }
 
     try {
 
         let announceText
 
-        await saveAction(action).then(response => {
-            if (response.error) throw new Error(response.error)
-            const replaceText = response.replaceResponse
-                ? `\nThis replaces your previous ${belt} request.`
-                : ''
-            announceText = `<@${member?.user?.id}> thanks for your ${belt} request!${replaceText}\n(id: ${response.id})`
+        await handleBeltRequest({
+            message,
+            userId,
+            userName,
+            requestedBelt,
+            messageContent,
+            ...redditUsername
         })
+            .then(response => {
+                if (response.error) throw new Error(response.error)
+                const replaceText = response.replaceResponse
+                    ? `\nThis replaces your previous ${requestedBelt} request.`
+                    : ''
+                announceText = `<@${userId}> thanks for your ${requestedBelt} request!\n`
+                    + `Details: ${messageContent}${replaceText}\n`
+                    + '*Request from lpubelts.com*\n'
+                    + `(id: ${response.id})`
+            })
 
         await announce(message, announceText)
 
     } catch (error) {
         console.error(`belt request error. (${error})`)
+        await saveAction({
+            status: 'error',
+            id: genHexString(8),
+            userId,
+            userName,
+            belt: requestedBelt,
+            error: error.message ?? error
+        })
+
     }
-
-    // {...action, ...response, replaceResponse}
-
-
 }
 
 function genHexString(len) {
