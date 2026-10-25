@@ -12,7 +12,6 @@ module.exports = {
     async execute(interaction) {
 
         if (interaction.user.bot) return
-
         const beltRequestsFile = path.join(__dirname, '../../..', 'data/beltRequests.json')
 
         let replyText

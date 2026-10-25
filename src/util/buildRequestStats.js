@@ -12,28 +12,29 @@ export async function buildRequestStats(requestsFile) {
         'requested',
         'synced',
         'replaced',
-        'superseded',
+        'superseded'
     ]
+
+    const sevenDaysAgo = dayjs().subtract(7, 'day')
 
     const stats = beltRequests
         .filter(request => request.status !== 'deleted')
         .reduce((acc, request) => {
-        const sevenDaysAgo = dayjs().subtract(7, 'day')
-        const last7Days = dayjs(request.dateAdded).isAfter(sevenDaysAgo)
+            const last7Days = dayjs(request.dateAdded).isAfter(sevenDaysAgo)
 
-        setDeepAdd(acc, ['total', 'status', request.status], 1)
-        setDeepAdd(acc, ['total', 'belt', request.belt], 1)
-        setDeepAdd(acc, ['total', 'userName', request.userName], 1)
-        setDeepAdd(acc, ['total', 'reviewer', request.lastUpdateBy], 1)
-        setDeepAdd(acc, ['total', 'reddit', 'total'], request.redditUsername ? 1 : 0)
-        setDeepAdd(acc, ['total', 'reddit', request.belt], request.redditUsername ? 1 : 0)
+            setDeepAdd(acc, ['total', 'status', request.status], 1)
+            setDeepAdd(acc, ['total', 'belt', request.belt], 1)
+            setDeepAdd(acc, ['total', 'userName', request.userName], 1)
+            setDeepAdd(acc, ['total', 'reviewer', request.lastUpdateBy], 1)
+            setDeepAdd(acc, ['total', 'reddit', 'total'], request.redditUsername ? 1 : 0)
+            setDeepAdd(acc, ['total', 'reddit', request.belt], request.redditUsername ? 1 : 0)
 
-        setDeepAdd(acc, ['lastSeven', 'status', request.status], last7Days ? 1 : 0)
-        setDeepAdd(acc, ['lastSeven', 'belt', request.belt], last7Days ? 1 : 0)
-        request.lastUpdateBy && setDeepAdd(acc, ['lastSeven', 'reviewer', request.lastUpdateBy], last7Days ? 1 : 0)
-        setDeepAdd(acc, ['lastSeven', 'redditTotal'], (last7Days && request.redditUsername) ? 1 : 0)
-        return acc
-    }, {})
+            setDeepAdd(acc, ['lastSeven', 'status', request.status], last7Days ? 1 : 0)
+            setDeepAdd(acc, ['lastSeven', 'belt', request.belt], last7Days ? 1 : 0)
+            request.lastUpdateBy && setDeepAdd(acc, ['lastSeven', 'reviewer', request.lastUpdateBy], last7Days ? 1 : 0)
+            setDeepAdd(acc, ['lastSeven', 'redditTotal'], (last7Days && request.redditUsername) ? 1 : 0)
+            return acc
+        }, {})
 
     const lastSevenReviewerStats = Object.keys(stats.lastSeven.reviewer).map(reviewer => {
         return {name: reviewer, count: stats.lastSeven.reviewer[reviewer]}
@@ -68,7 +69,7 @@ export async function buildRequestStats(requestsFile) {
                 text: '```\n'
                     + lastSevenReviewerStats.map(reviewer => `${reviewer.name.padEnd(13)}${reviewer.count.toString().padEnd(5)}`).join('\n')
                     + '\n```\n'
-            },
+            }
         ]
 
         sevenBlocks.forEach(block => {

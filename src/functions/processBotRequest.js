@@ -57,7 +57,7 @@ export async function processBotRequest(message, requestEmbed) {
                     : ''
                 announceText = `<@${userId}> thanks for your ${requestedBelt} request!\n`
                     + `Details: ${messageContent}${replaceText}\n`
-                    + '*Request from lpubelts.com*\n'
+                    + '*Request from lpubelts.com/request*\n'
                     + `(id: ${response.id})`
             })
 

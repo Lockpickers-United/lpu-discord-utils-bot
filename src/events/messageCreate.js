@@ -9,8 +9,12 @@ const {processBotRequest} = require('../functions/processBotRequest')
 
 const keywords = ['channel info']
 const beltKeywords = [
-    'request', 'list',
-    'approve', 'reject', 'deny', 'delete', 'pend', 'review', 'unreview', 'moreinfo', 'info', 'history',
+    'request',
+    'list', 'ls',
+    'approve', 'ok',
+    'reject', 'deny',
+    'delete', 'rm',
+    'pend', 'review', 'unreview', 'moreinfo', 'info', 'history',
     'sync', 'stats', 'delete_all', 'help'
 ]
 const allKeywords = [...keywords, ...beltKeywords]
@@ -45,15 +49,6 @@ module.exports = {
 
         if (message.author?.bot) return
 
-        const beltRequestChannelId = beltRequestChannelIds[message.guildId]
-        if (!beltRequestChannelId) {
-            await message.reply({
-                content: `No belt request channel ID found for guildId: ${message.guildId}`,
-                flags: [MessageFlags.Ephemeral]
-            })
-            return
-        }
-
         const messageContent = await cleanMessage(message)
 
         //console.log(`${message.author.username} sent message: ${messageContent}`)
@@ -73,7 +68,7 @@ module.exports = {
             //&& message.author?.username !== 'mgsecure'
         ) {
             await message.reply({
-                content: '## I\'m sorry. LPUBeltBot is out for repairs, but Locky Jr. is filling in for a bit.'
+                content: '### I\'m sorry. LPUBeltBot is out for repairs, but Locky Jr. is filling in for a bit.'
                     + '\nTo request a belt, please use the format:\n  **@LockyJr** `request [Belt color] [Lock model] https://image_or_video_link_here`.'
                     + '\nTo have your belt synced to Reddit, include `u/[Your Reddit Username]` in your message.'
 
@@ -144,8 +139,7 @@ module.exports = {
                 if (!permissions?.has(PermissionFlagsBits.SendMessages))
                     throw new Error(`Missing access to ${message.channel.id}`)
 
-                // , flags: [MessageFlags.Ephemeral]
-                replyText && await message.reply({content: replyText.toString()})
+                replyText && await message.reply({content: replyText.toString(), flags: [MessageFlags.Ephemeral]})
 
             } catch (error) {
                 console.error('Error sending message:', error)

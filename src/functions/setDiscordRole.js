@@ -2,7 +2,7 @@ const {beltRequestChannelIds} = require('../data/config.js')
 const {beltRoles} = require('../util/belts.js')
 const {PermissionFlagsBits} = require('discord.js')
 
-async function setDiscordRole(event, eventOptions, type = 'synced') {
+async function setDiscordRole(event, eventOptions) {
 
     const beltRequestChannelId = beltRequestChannelIds[event.guildId]
     if (!beltRequestChannelId) {
@@ -14,7 +14,6 @@ async function setDiscordRole(event, eventOptions, type = 'synced') {
     const options = eventOptions || event.options
     const username = options.username.toString()
     const belt = options.belt.toString()
-    const message = options.message?.toString() || ''
 
     const role = ['Dan', 'Belt'].some(text => belt.includes(text)) ? belt : `${belt} Belt`
 
@@ -36,6 +35,8 @@ async function setDiscordRole(event, eventOptions, type = 'synced') {
 
     const allBeltRoleIds = beltRoles.map(role => roleIds[role]).filter(x => x)
     allBeltRoleIds.push(roleIds['Chatter'])
+
+    // TODO: preserve black belt
 
     const currentRoleNames = member.roles.cache
         .filter(role => role.name !== '@everyone')
@@ -80,31 +81,11 @@ async function setDiscordRole(event, eventOptions, type = 'synced') {
             console.error('Missing access to beltRequestsChannel')
             statusMessages = statusMessages + ' | Missing access to beltRequestsChannel'
         }
-        await beltRequestsChannel.send(
-            `<@${member.id}>, <@${event.user.id}> has reviewed and ${type} your request. Congrats on your ${role}! ${message}`
-        )
     } catch (err) {
         statusMessages = statusMessages + ' | failed to post announcement'
     }
 
-    try {
-        const logChannel = await event.client.channels.fetch('647550275631972362')
-        if (!logChannel?.isTextBased()) return console.error('Log channel not text-based')
-
-        const perms = logChannel.permissionsFor(event.client.user)
-        if (!logChannel.viewable || !perms?.has(PermissionFlagsBits.SendMessages)) {
-            console.error('Missing access to log channel')
-            statusMessages = statusMessages + ' | Missing access to log channel'
-        }
-        await logChannel.send(
-            `${event.user?.username} successfully set ${role} role for ${username} on Discord.`
-        )
-    } catch (err) {
-        console.error('Failed to log:', err)
-        statusMessages = statusMessages + ' | Failed to post log'
-    }
-
-    return {status: 'success', message: statusMessages, alert}
+    return {status: 'success', success: 'success', statusMessages, alert}
 
 }
 
