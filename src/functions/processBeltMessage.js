@@ -653,15 +653,15 @@ function genHexString(len) {
 function getDefaultMessge(belt) {
 
     const defaultMessages = {
-        'White Belt': ' Welcome to LPU!',
-        'Yellow Belt': ' Nice work!',
-        'Orange Belt': ' Way to go!',
-        'Green Belt': ' Movin\' on up!',
-        'Blue Belt': ' Awesome!',
-        'Purple Belt': ' Big milestone.',
-        'Brown Belt': ' Great work!',
-        'Red Belt': ' When Black?',
-        'Black Belt': ' What a tremendous milestone.',
+        'White Belt': ' Welcome to LPU! <:whitebelt:336531963634515972>',
+        'Yellow Belt': ' Nice work! <:yellowbelt:336531963764539393>',
+        'Orange Belt': ' Way to go! <:orangebelt:336531963877785601>',
+        'Green Belt': ' Movin\' on up! <:greenbelt:336531963844362242>',
+        'Blue Belt': ' Awesome! <:bluebelt:336531963835973632>',
+        'Purple Belt': ' Big milestone. <:purplebelt:336531963521531913>',
+        'Brown Belt': ' Great work! <:brownbelt:336531963525464065>',
+        'Red Belt': ' When Black? <:redbelt:336531963869528067>',
+        'Black Belt': ' What a tremendous milestone. <:lpu:585997905773461514>',
     }
 
     return defaultMessages[belt] || 'Nice work!'

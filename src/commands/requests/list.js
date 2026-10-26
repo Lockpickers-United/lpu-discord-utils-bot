@@ -1,10 +1,12 @@
 const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
 const {handleList} = require('../../functions/processBeltMessage.js')
 const {default: belts} = require('../../util/belts.js')
+const {randomResponse} = require('../../util/randomResponse.js')
+
 const path = require('node:path')
 
 module.exports = {
-    category: 'utility',
+    category: 'requests',
     data: new SlashCommandBuilder()
         .setName('list')
         .setDescription('View open belt requests'),
@@ -19,7 +21,7 @@ module.exports = {
         let embeds = []
         let flags = []
         try {
-            await handleList(beltRequestsFile).then(response => {
+            await handleList(beltRequestsFile).then(async (response) => {
                 replyText = response.success
                     ? ''
                     : `Sorry <@${interaction.author.id}>: ${response.error}`
@@ -63,13 +65,14 @@ module.exports = {
                         embeds.push(embed)
                     })
                 } else {
+                    const response = await randomResponse(90, 'hour') || 'Nice.'
                     const embed = new EmbedBuilder()
                         .setColor('#00bb00')
-                        .setTitle('Congratulations!')
+                        .setTitle('All Clear!')
                         .addFields(
                             {
                                 name: ' ',
-                                value: 'All Clear.',
+                                value: response,
                                 inline: false
                             }
                         )

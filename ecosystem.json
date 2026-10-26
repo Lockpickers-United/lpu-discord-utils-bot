@@ -1,0 +1,18 @@
+{
+  "apps": [
+    {
+      "name": "locky-jr",
+      "cwd": "/home/lpubelts_api/apps/locky-jr",
+      "script": "/home/lpubelts_api/apps/locky-jr/src/locky-junior.js",
+      "node_args": "",
+      "instances": 1,
+      "exec_mode": "fork",
+      "min_uptime": "10s",
+      "kill_timeout": 12000,
+      "merge_logs": true,
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}
