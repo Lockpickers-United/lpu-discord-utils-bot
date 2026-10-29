@@ -32,23 +32,19 @@ module.exports = {
             return
         }
 
-        const requestEmbed = message.embeds.find(embed => embed.data.title === 'New Belt Request')
-
-        // if (requestEmbed) console.log('requestEmbed found', message.webhookId, requestEmbed)
+        const requestEmbed = message.embeds.find(embed => embed.data.title.includes('New Belt Request'))
 
         const acceptedRequest = (
-            message.webhookId === beltRequestConfig.webhookId
+            beltRequestConfig.webhookIds.includes(message.webhookId)
             && message.guildId === beltRequestConfig.lpuGuildId
             && beltRequestConfig.channelIds.includes(message.channelId)
         )
-
         if (acceptedRequest && requestEmbed) {
             await processBotRequest(message, requestEmbed)
             return
         }
 
         if (message.author?.bot) return
-
         const messageContent = await cleanMessage(message)
 
         //console.log(`${message.author.username} sent message: ${messageContent}`)
@@ -64,11 +60,11 @@ module.exports = {
         }
 
         if (warnResponse && lpuBeltBotMentioned
-            && beltRequestChannelId === message.channelId.toString()
+            && beltRequestChannelIds[message.channelId.toString()]
             //&& message.author?.username !== 'mgsecure'
         ) {
             await message.reply({
-                content: '### I\'m sorry. LPUBeltBot is out for repairs, but Locky Jr. is filling in for a bit.'
+                content: '### I\'m sorry. LPUBeltBot was the G.O.A.T, but Locky Jr. is filling in for a bit.'
                     + '\nTo request a belt, please use the format:\n  **@LockyJr** `request [Belt color] [Lock model] https://image_or_video_link_here`.'
                     + '\nTo have your belt synced to Reddit, include `u/[Your Reddit Username]` in your message.'
 

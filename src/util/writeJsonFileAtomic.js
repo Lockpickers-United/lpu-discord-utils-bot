@@ -1,8 +1,8 @@
-import {randomUUID} from 'node:crypto'
-import fs from 'node:fs/promises'
-import path from 'node:path'
+const {randomUUID} = require('node:crypto')
+const fs = require('node:fs/promises')
+const path = require('node:path')
 
-export default async function writeJsonFileAtomic(filePath, data, {
+async function writeJsonFileAtomic(filePath, data, {
     fileSystem = fs,
     spaces,
     trailingNewline = false
@@ -35,3 +35,5 @@ export default async function writeJsonFileAtomic(filePath, data, {
         throw error
     }
 }
+
+module.exports = writeJsonFileAtomic

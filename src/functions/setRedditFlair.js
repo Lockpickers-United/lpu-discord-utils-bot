@@ -5,7 +5,7 @@ const {client_id, client_secret, refresh_token} = require('../../keys/reddit-key
 async function setRedditFlair(subredditName, username, belt) {
 
     const reddit = new snoowrap({
-        userAgent: 'modmail-sync-checker by u/mgsecure',
+        userAgent: 'modmail-sync by u/mgsecure',
         clientId: client_id,
         clientSecret: client_secret,
         refreshToken: refresh_token
@@ -26,7 +26,7 @@ async function setRedditFlair(subredditName, username, belt) {
         method: 'POST',
         headers: {
             Authorization: `Bearer ${token}`,
-            'User-Agent': reddit._config.userAgent,
+            'User-Agent': reddit.config.userAgent,
             'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: body.toString()

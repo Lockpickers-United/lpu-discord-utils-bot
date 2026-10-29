@@ -2,8 +2,8 @@ import fs from 'node:fs/promises'
 import dayjs from 'dayjs'
 import snoowrap from 'snoowrap'
 import {PermissionFlagsBits, MessageFlags} from 'discord.js'
-import setDiscordRole from '../functions/setDiscordRole.js'
-import setRedditFlair from '../functions/setRedditFlair.js'
+import setDiscordRole from './setDiscordRole.js'
+import setRedditFlair from './setRedditFlair.js'
 import cleanMessage from '../util/cleanMessage.js'
 import writeJsonFileAtomic from '../util/writeJsonFileAtomic.js'
 import {beltRequestsFile} from '../../keys/botConfig.js'
@@ -13,6 +13,9 @@ import {setDeepPush} from '../util/setDeep.js'
 import {getSortComparator} from '../util/sortComparators.js'
 import {client_id, client_secret, refresh_token} from '../../keys/reddit-keys.js'
 import {buildRequestStats} from '../util/buildRequestStats.js'
+import parseBeltRequest from '../util/parseBeltRequest.js'
+import {modmailReply} from './modmailReply.js'
+import {flairDetails} from '../util/flairs.js'
 
 const beltStrings = beltRoles.reduce((acc, role) => {
     const alt = role.toLowerCase()
@@ -122,7 +125,7 @@ export async function handleList(requestsFile) {
     let requestsText = 'Requests:\n'
 
     organizedRequests.forEach(userRequests => {
-        requestsText += `**${userRequests.requests[0].userName}**\n`
+        requestsText += `**${userRequests.requests[0].username}**\n`
         userRequests.requests.forEach(request => {
             const reviewText = request.status === 'reviewing'
                 ? ` (${request.reviewerName} reviewing)`
@@ -139,30 +142,46 @@ export async function handleList(requestsFile) {
     return {requestsText, organizedRequests, success: 'list retrieved'}
 }
 
-export async function handleBeltRequest({message, messageContent, userName, userId, requestedBelt, redditUsername}) {
+
+export async function handleBeltRequest({message, params}) {
+
+    const {
+        source,
+        platform,
+        userId,
+        username,
+        belt,
+        messageContent,
+        currentBelt,
+        requestId,
+        syncTo,
+        syncUsername
+    } = params
+
     const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
     const existingRequest = beltRequests
         .find(
             request => request.userId === userId
-                && request.belt === requestedBelt
+                && request.belt === belt
                 && request.status === 'requested'
         )
-
-    const syncMatch = new RegExp('u\\/(\\S*)\\b', 'i').exec(messageContent)
-    const redditUsernameObj = redditUsername
-        ? {redditUsername}
-        : syncMatch?.[1] ? {redditUsername: syncMatch[1]} : null
 
     const id = genHexString(8)
     const action = {
         status: 'requested',
-        dateAdded: dayjs().format('YYYY-MM-DD HH:mm'),
+        dateAdded: dayjs().format(),
         id,
-        belt: requestedBelt,
-        userName,
+        messageId: message.id,
+        requestId,
+        source,
+        platform,
         userId,
-        ...redditUsernameObj,
-        messageId: message.id
+        username,
+        belt,
+        messageContent,
+        currentBelt,
+        syncTo,
+        syncUsername
     }
     const response = await saveAction(action)
 
@@ -171,7 +190,7 @@ export async function handleBeltRequest({message, messageContent, userName, user
         const action = {
             id: existingRequest.id,
             status: 'replaced',
-            updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+            updatedAt: dayjs().toISOString(),
             lastUpdateBy: 'LockyJr',
             updateMessageId: message.id
         }
@@ -207,10 +226,11 @@ async function setFlair(username, belt) {
     try {
         await setRedditFlair(subredditName, username, belt)
         console.log(`Successfully set flair to ${belt}`)
-        return {redditSynched: 'Successfully set Reddit flair'}
+        return {status: 'success', result: `Successfully set Reddit flair to ${belt}`}
     } catch (err) {
-        console.error('Failed to set user flair', err)
-        return {redditSynched: 'Failed to set Reddit flair'}
+        const errorMessage = `Failed to set Reddit flair: ${err.message ?? err}`
+        console.error(errorMessage)
+        return {error: errorMessage, result: errorMessage}
     }
 }
 
@@ -222,56 +242,71 @@ async function handleRequestApprove(message, id, notesText) {
     const blocked = editIsBlocked(message, existingRequest)
     if (blocked) return {error: blocked}
 
-    const params = {
-        username: existingRequest.userName,
-        belt: existingRequest.belt,
+    const {source, platform, userId, username, belt, messageContent, currentBelt, requestId, syncTo, syncUsername} = existingRequest
+
+    // flag on platform
+    let transaction = {}
+    if (platform === 'Reddit') {
+        transaction = await setFlair(username, belt)
+    } else if (!platform || platform === 'Discord') {
+        transaction = await setDiscordRole(message, {username, belt})
     }
+    if (transaction.error) return {error: `Failed to set belt on ${platform}: ${transaction.error}`}
 
-    const announceNotes = notesText.length ? notesText : getDefaultMessge(existingRequest.belt)
-    let announceMessage = `<@${existingRequest.userId}>, <@${message.author?.id}> has reviewed and approved your request. Congrats on your ${existingRequest.belt}!${announceNotes}`
-
-    const transaction = await setDiscordRole(message, params)
-    if (transaction.status !== 'success')
-        return {error: `Failed to set role: ${transaction.error}`}
-
-    let replyText = `Successfully set ${existingRequest.belt} for **${existingRequest.username}**.`
-    if (transaction.message)
-        replyText = replyText + '\n  messages: ' + transaction.message
-    if (transaction.alert)
-        replyText = replyText + '\n  ALERT: ' + transaction.alert
-
+    // sync i/a
     let redditResult = {}
     let warning = {}
+    let syncMessage
 
-    if (existingRequest.redditUsername) {
-        const username = existingRequest.redditUsername
-        const belt = existingRequest.belt.replace(/\sBelt/ig, '')
+    if (syncTo === 'Discord') {
+        // set discord role, announce
+        console.log('Syncing Discord role placeholder')
 
+    } else if (syncTo === 'Reddit' && syncUsername) {
         try {
-            redditResult = await setFlair(username, belt)
-            announceMessage += '  (You\'ve also been flaired on Reddit.)'
+            redditResult = await setFlair(syncUsername, belt)
+            syncMessage = '\n  (You\'ve also been flaired on Reddit.)'
         } catch (err) {
             console.error('Failed to set user flair', err)
             redditResult = {redditSynched: 'Failed to set Reddit flair'}
         }
     }
 
-    try {
-        await announce(message, announceMessage)
-    } catch (err) {
-        console.error('Failed to announce approval.')
-        warning = {warning: 'Failed to announce approval.'}
+    // respond
+    if (platform === 'Discord') {
+        const announceNotes = notesText.length ? notesText : getDefaultMessage(belt)
+        let announceMessage = `<@${userId}>, <@${message.author?.id}> has reviewed and `
+            + `approved your request. Congrats on your ${belt}!${announceNotes}`
+        if (syncMessage) announceMessage += syncMessage
+        try {
+            await announce(message, announceMessage)
+        } catch (err) {
+            console.error('Failed to announce approval.')
+            warning = {warning: 'Failed to announce approval.'}
+        }
+    } else if (source === 'Reddit') {
+        const announceNotes = notesText.length ? notesText : getDefaultMessage(belt).replace(/\s*<.*>/, '')
+        let modmailMessage = `${belt} approved. Congratulations! ${announceNotes}`
+        if (syncMessage) modmailMessage += syncMessage
+        try {
+            await modmailReply({conversationId: requestId, modmailMessage, archive: true, isAuthorHidden: true})
+        } catch (err) {
+            console.error('Failed to reply to modmail.', err)
+            warning = {warning: 'Failed to reply to modmail.'}
+        }
     }
 
-    // `<@${member.id}>, <@${event.user.id}> has reviewed and ${type} your request. Congrats on your ${role}! ${message}`
+    let replyText = `Successfully set ${belt} for **${username}** on ${platform}.`
+    if (transaction.message) replyText += ('\n  messages: ' + transaction.message)
+    if (transaction.alert) replyText += ('\n  ALERT: ' + transaction.alert)
 
     const action = {
         id,
-        status: 'approved',
-        updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+        updatedAt: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id,
-        ...redditResult
+        ...redditResult,
+        status: 'approved',
     }
     const response = await saveAction(action)
 
@@ -285,7 +320,7 @@ async function handleRequestApprove(message, id, notesText) {
         const action = {
             id: lowerBeltRequests[index].id,
             status: 'superseded',
-            updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+            updatedAt: dayjs().format(),
             lastUpdateBy: message.author?.username,
             updateMessageId: message.id
         }
@@ -296,9 +331,11 @@ async function handleRequestApprove(message, id, notesText) {
     return {replyText, ...action, ...response, ...warning, supersededResponses, success: true}
 }
 
+
 async function handleRequestReject(message, id, notesText) {
     const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
     const existingRequest = beltRequests.find(request => request.id === id)
+    const {source, platform, userId, username, belt, messageContent, currentBelt, requestId, syncTo, syncUsername} = existingRequest
 
     const blocked = editIsBlocked(message, existingRequest)
     if (blocked) return {error: blocked}
@@ -306,21 +343,33 @@ async function handleRequestReject(message, id, notesText) {
     const action = {
         id,
         status: 'rejected',
-        updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+        updatedAt: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id
     }
     const response = await saveAction(action)
 
     let warning = {}
-    try {
-        await announce(message,
-            `<@${existingRequest.userId}>, <@${message.author.id}> has reviewed and denied your request for ${existingRequest.belt}.`
-            + `${notesText}`
-        )
-    } catch (err) {
-        console.error('Failed to announce decision.')
-        warning = {warning: 'Failed to announce decision.'}
+
+    // respond
+    if (platform === 'Discord') {
+        try {
+            await announce(message,
+                `<@${existingRequest.userId}>, <@${message.author.id}> has reviewed and denied your request for ${existingRequest.belt}.`
+                + `${notesText}`
+            )
+        } catch (err) {
+            console.error('Failed to announce rejection.')
+            warning = {warning: 'Failed to announce rejection.'}
+        }
+    } else if (source === 'Reddit') {
+        const modmailMessage = `We've reviewed and denied your request for ${belt}. ${notesText}`
+        try {
+            await modmailReply({conversationId: requestId, modmailMessage, archive: true, isAuthorHidden: true})
+        } catch (err) {
+            console.error('Failed to reply to modmail.', err)
+            warning = {warning: 'Failed to reply to modmail.'}
+        }
     }
 
     return {...action, ...response, ...warning}
@@ -339,7 +388,7 @@ async function handleRequestDelete(message, id) {
     const action = {
         id,
         status: 'deleted',
-        updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+        updatedAt: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id
     }
@@ -357,7 +406,7 @@ async function handleRequestPend(message, id) {
     const action = {
         id,
         status: 'pending',
-        updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+        updatedAt: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id
     }
@@ -385,7 +434,7 @@ async function handleRequestReview(message, id, deactivate = false) {
     const action = {
         id,
         status: !deactivate ? 'reviewing' : 'stopReviewing',
-        updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+        updatedAt: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id,
         reviewerId: message.author?.id,
@@ -432,13 +481,13 @@ async function handleSync(message) {
     const id = genHexString(8)
     const action = {
         status: 'synced',
-        dateAdded: dayjs().format('YYYY-MM-DD HH:mm'),
+        dateAdded: dayjs().format(),
         id,
         belt,
-        userName: message.author?.username,
+        username: message.author?.username,
         userId: message.author?.id,
         ...redditUsername,
-        updatedAt: dayjs().format('YYYY-MM-DD HH:mm'),
+        updatedAt: dayjs().format(),
         lastUpdateBy: message.author?.username,
         messageId: message.id
     }
@@ -459,7 +508,7 @@ async function handleHistory(beltRequestsFile, target) {
     const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
     const existingRequest =
         beltRequests.find(request => request.id === target)
-        ?? beltRequests.find(request => request.userName === target)
+        ?? beltRequests.find(request => request.username === target)
         ?? beltRequests.find(request => request.userId === target)
 
     const allRequests = beltRequests
@@ -477,7 +526,7 @@ async function handleHistory(beltRequestsFile, target) {
 
     return allRequests.length > 0
         ? {
-            requestsText: `## ${existingRequest.userName?.toString()}\n`
+            requestsText: `## ${existingRequest.username?.toString()}\n`
                 + '```\n'
                 + `${allRequests.join('```\n```\n')}`
                 + '```',
@@ -501,50 +550,43 @@ export async function processBeltMessage(message) {
     const reviewerRoles = ['Staff', 'Belt Reviewer']
     const isReviewer = message.member?.roles?.cache?.some(role => reviewerRoles.includes(role.name))
 
-
-    const actionMatch = new RegExp('(?:^|\\s)(\\[me]|@LPUBeltBot#5324)\\s+(\\w+)\\s*(\\w*)\\s*(.*)', 'is').exec(messageContent)
-    console.log('actionMatch', actionMatch)
-
-    //const _whichBot = actionMatch?.[1]
-    const action = actionMatch?.[2].toLowerCase()
-    const id = actionMatch?.[3]
-    const notes = actionMatch?.[4].trim()
+    const {action, id, belt, evidence, notes, syncMatch} = parseBeltRequest(messageContent)
     const notesText = notes?.length ? `\nNotes: ${notes}` : ''
 
-    const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
-    let requestedBelt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
-    let evidence = beltMatch?.[2] ?? null
-
-    if (!requestedBelt) {
-        const shortBeltMatch = new RegExp(`\\brequest\\s+(${shortAlternatives})\\s*(\\S*)`, 'i').exec(messageContent)
-        requestedBelt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch?.[1].toLowerCase()] : null
-        evidence = shortBeltMatch?.[2] ?? null
-    }
-    if (!requestedBelt && !isReviewer) {
+    if (!belt && !isReviewer) {
         return 'Invalid request, try `help` for commands'
     }
 
     let replyText = 'Invalid request, try `help` for commands'
 
     if (action === 'request') {
+        const syncUsername = syncMatch
+        const syncTo = syncMatch ? 'Reddit' : undefined
 
-        if (!requestedBelt || !evidence) {
+        const params = {
+            source: 'Discord',
+            platform: 'Discord',
+            username: member.displayName ?? message.author.username,
+            userId: message.author.id,
+            belt,
+            messageContent,
+            currentBelt: 'tk',
+            requestId: message.id,
+            syncTo,
+            syncUsername
+        }
+
+        if (!belt || !evidence) {
             replyText = 'To request a belt, please use the format:\n'
                 + '`request [Belt Color] [Lock model] https://image_or_video_link_here`\n'
         } else {
-            await handleBeltRequest({
-                message,
-                messageContent,
-                requestedBelt,
-                userName: member.displayName ?? message.author.username,
-                userId: message.author.id
-            }).then(response => {
+            await handleBeltRequest({message, params}).then(response => {
                 const replaceText = response.replaceResponse
-                    ? `\nThis replaces your previous ${requestedBelt} request.`
+                    ? `\nThis replaces your previous ${belt} request.`
                     : ''
                 replyText = response.success
-                    ? `<@${message.author.id}> thanks for your ${requestedBelt} request!${replaceText}\n(id: ${response.id})`
-                    : `Sorry <@${message.author.id}>, your ${requestedBelt} request didn't go through. (${response.error})`
+                    ? `<@${message.author.id}> thanks for your ${belt} request!${replaceText}\n(id: ${response.id})`
+                    : `Sorry <@${message.author.id}>, your ${belt} request didn't go through. (${response.error})`
             })
         }
 
@@ -561,47 +603,48 @@ export async function processBeltMessage(message) {
     } else if (['approve', 'ok'].some(a => a === action)) {
 
         await handleRequestApprove(message, id, notesText).then(response => {
+            console.log('response', response)
             const redditResult = response.redditUsername ? `\n${response.redditSynched}` : ''
             const supersededText = response.supersededResponses?.length > 0
                 ? `\n${response.supersededResponses.length} lower belt request(s) were closed.`
                 : ''
             replyText = response.success
-                ? `@${response.userName} set with role ${response.belt}.${redditResult}${supersededText}`
+                ? `@${response.username} set with role ${response.belt}.${redditResult}${supersededText}`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (['reject', 'deny'].some(a => a === action)) {
         await handleRequestReject(message, id, notesText).then(response => {
             replyText = response.success
-                ? `The request from @${response.userName} for ${response.belt} was denied.`
+                ? `The request from @${response.username} for ${response.belt} was denied.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (['delete', 'rm'].some(a => a === action)) {
         await handleRequestDelete(message, id).then(response => {
             replyText = response.success
-                ? `The request from @${response.userName} for ${response.belt} was deleted.`
+                ? `The request from @${response.username} for ${response.belt} was deleted.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'pend') {
         await handleRequestPend(message, id).then(response => {
             replyText = response.success
-                ? `The request from @${response.userName} for ${response.belt} in now pending.`
+                ? `The request from @${response.username} for ${response.belt} in now pending.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'review') {
         await handleRequestReview(message, id, false).then(response => {
             replyText = response.success
-                ? `Your are now reviewing the request from @${response.userName} for ${response.belt}.`
+                ? `You are now reviewing the request from @${response.username} for ${response.belt}.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
     } else if (action === 'unreview') {
         await handleRequestReview(message, id, true).then(response => {
             replyText = response.success
-                ? `Your are no longer reviewing the ${response.belt} request from @${response.userName}.`
+                ? `You are no longer reviewing the ${response.belt} request from @${response.username}.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
@@ -650,19 +693,17 @@ function genHexString(len) {
     return output.toLowerCase()
 }
 
-function getDefaultMessge(belt) {
-
+function getDefaultMessage(belt) {
     const defaultMessages = {
         'White Belt': ' Welcome to LPU! <:whitebelt:336531963634515972>',
         'Yellow Belt': ' Nice work! <:yellowbelt:336531963764539393>',
         'Orange Belt': ' Way to go! <:orangebelt:336531963877785601>',
         'Green Belt': ' Movin\' on up! <:greenbelt:336531963844362242>',
         'Blue Belt': ' Awesome! <:bluebelt:336531963835973632>',
-        'Purple Belt': ' Big milestone. <:purplebelt:336531963521531913>',
+        'Purple Belt': ' Big milestone! <:purplebelt:336531963521531913>',
         'Brown Belt': ' Great work! <:brownbelt:336531963525464065>',
         'Red Belt': ' When Black? <:redbelt:336531963869528067>',
-        'Black Belt': ' What a tremendous milestone. <:lpu:585997905773461514>',
+        'Black Belt': ' What a tremendous accomlishment. <:lpu:585997905773461514>'
     }
-
     return defaultMessages[belt] || 'Nice work!'
 }

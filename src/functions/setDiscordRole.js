@@ -66,9 +66,6 @@ async function setDiscordRole(event, eventOptions) {
         return {status: 'error', error: message}
     }
 
-    console.log(`Successfully set ${role} role for ${username} on Discord.`)
-
-
     try {
         const beltRequestsChannel = await event.client.channels.fetch(beltRequestChannelId)
         if (!beltRequestsChannel?.isTextBased()) {
@@ -85,7 +82,7 @@ async function setDiscordRole(event, eventOptions) {
         statusMessages = statusMessages + ' | failed to post announcement'
     }
 
-    return {status: 'success', success: 'success', statusMessages, alert}
+    return {status: 'success', success: 'success', result: `Successfully set ${role} role for ${username} on Discord.`, statusMessages, alert}
 
 }
 

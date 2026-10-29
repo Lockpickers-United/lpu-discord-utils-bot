@@ -1,6 +1,6 @@
 //#FFC0CB, #FF69B4, #FF00FF, #F9AFAE, #FF66CC, #F88379, #FFD1DC, #FFB6C1, #FFCCCB, #FF00AA
 
-export const beltRoles = [
+const beltRoles = [
     'White Belt',
     'Yellow Belt',
     'Orange Belt',
@@ -32,7 +32,7 @@ export const beltRoles = [
     '20th Dan',
 ]
 
-export const danAltNames = [
+const danAltNames = [
     'Dan 1',
     'Dan 2',
     'Dan 3',
@@ -116,12 +116,11 @@ const belts = {
         'Hall of Fame': {color: '#e3e13a', lineColor: '#e3e13a', danPoints: 50}
     }
 
-export default belts
-export const allBelts = Object.keys(belts)
-export const allBeltsReverse = [...allBelts].reverse()
+const allBelts = Object.keys(belts)
+const allBeltsReverse = [...allBelts].reverse()
 allBeltsReverse.push(allBeltsReverse.shift())
 
-export const uniqueBelts = [
+const uniqueBelts = [
     'White',
     'Yellow',
     'Orange',
@@ -133,7 +132,7 @@ export const uniqueBelts = [
     'Black'
 ]
 
-export const danBelts = [
+const danBelts = [
     'White',
     'Yellow',
     'Orange',
@@ -151,7 +150,7 @@ export const danBelts = [
     'Project'
 ]
 
-export const danBeltsFull = [
+const danBeltsFull = [
     'White',
     'Yellow',
     'Orange',
@@ -173,31 +172,46 @@ export const danBeltsFull = [
     'Project 5'
 ]
 
-export const beltSort = (a, b) => {
+const beltSort = (a, b) => {
     return allBelts.indexOf(a) - allBelts.indexOf(b)
 }
-export const beltSortReverse = (a, b) => {
+const beltSortReverse = (a, b) => {
     return allBeltsReverse.indexOf(a) - allBeltsReverse.indexOf(b)
 }
 
-export const beltRoleSort = (a, b) => {
+const beltRoleSort = (a, b) => {
     return beltRoles.indexOf(a) - beltRoles.indexOf(b)
 }
-export const beltRolesReverse = [...beltRoles].reverse()
-export const beltRoleSortReverse = (a, b) => {
+const beltRolesReverse = [...beltRoles].reverse()
+const beltRoleSortReverse = (a, b) => {
     return beltRolesReverse.indexOf(a) - beltRolesReverse.indexOf(b)
 }
 
 
-export const danBeltSort = (a, b) => {
+const danBeltSort = (a, b) => {
     return danBeltsFull.indexOf(a) - danBeltsFull.indexOf(b)
 }
-export const danBeltsFullReverse = moveToLast([...danBeltsFull].reverse(), 'Unranked')
-export const danBeltSortReverse = (a, b) => {
+const danBeltsFullReverse = moveToLast([...danBeltsFull].reverse(), 'Unranked')
+const danBeltSortReverse = (a, b) => {
     return danBeltsFullReverse.indexOf(a) - danBeltsFullReverse.indexOf(b)
 }
 
-export const projectTiers = {
+function getDefaultMessage(belt) {
+    const defaultMessages = {
+        'White Belt': ' Welcome to LPU! <:whitebelt:336531963634515972>',
+        'Yellow Belt': ' Nice work! <:yellowbelt:336531963764539393>',
+        'Orange Belt': ' Way to go! <:orangebelt:336531963877785601>',
+        'Green Belt': ' Movin\' on up! <:greenbelt:336531963844362242>',
+        'Blue Belt': ' Awesome! <:bluebelt:336531963835973632>',
+        'Purple Belt': ' Big milestone. <:purplebelt:336531963521531913>',
+        'Brown Belt': ' Great work! <:brownbelt:336531963525464065>',
+        'Red Belt': ' When Black? <:redbelt:336531963869528067>',
+        'Black Belt': ' What a tremendous milestone. <:lpu:585997905773461514>'
+    }
+    return defaultMessages[belt] || 'Nice work!'
+}
+
+const projectTiers = {
     T1: {danPoints: 5},
     T2: {danPoints: 10},
     T3: {danPoints: 20},
@@ -205,7 +219,7 @@ export const projectTiers = {
     T5: {danPoints: 50}
 }
 
-export const modifierMultiplier = {
+const modifierMultiplier = {
     'First Recorded Pick': 1.5,
     'First Recorded Pick (Notable)': 2.5,
     'Non-Picking Defeat': 0.75,
@@ -223,4 +237,26 @@ function moveToLast(arr, value) {
         arr.push(value)
     }
     return arr
+}
+
+module.exports = {
+    default: belts,
+    beltRoles,
+    danAltNames,
+    allBelts,
+    allBeltsReverse,
+    uniqueBelts,
+    danBelts,
+    danBeltsFull,
+    beltSort,
+    beltSortReverse,
+    beltRoleSort,
+    beltRolesReverse,
+    beltRoleSortReverse,
+    danBeltSort,
+    danBeltsFullReverse,
+    danBeltSortReverse,
+    getDefaultMessage,
+    projectTiers,
+    modifierMultiplier
 }

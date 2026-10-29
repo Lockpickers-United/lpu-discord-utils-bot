@@ -17,8 +17,6 @@ const dataDir = prodEnvironment
     ? `/home/${prodUser}/discord-utils-bot-logs`
     : `/Users/${localUser}/Documents/GitHub/lpu-discord-utils-bot/data`
 
-
-
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('flair')

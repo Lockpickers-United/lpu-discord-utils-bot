@@ -26,8 +26,6 @@ module.exports = {
                     ? ''
                     : `Sorry <@${interaction.author.id}>: ${response.error}`
 
-
-
                 if (response.organizedRequests?.length) {
                     response.organizedRequests?.forEach(userRequests => {
 
@@ -42,8 +40,10 @@ module.exports = {
                                 : ''
                             requestText += errorText
                             requestText += `**${request.belt}**${reviewText}\n`
-                            if (request.redditUsername)
-                                requestText += `Reddit: u/${request.redditUsername}\n`
+                            if (request.syncUsername && request.syncTo === 'Reddit')
+                                requestText += `Sync to Reddit: u/${request.syncUsername}\n`
+                            if (request.syncUsername && request.syncTo === 'Discord')
+                                requestText += `Sync to Discord: @${request.syncUsername}\n`
                             requestText += `${request.dateAdded} `
                             requestText += ` https://discord.com/channels/140129091796992000/282173282546089985/${request.messageId}\n`
                             requestText += `ID: ${request.id}\n\n`
@@ -54,7 +54,7 @@ module.exports = {
                             : '#bb0000'
                         const embed = new EmbedBuilder()
                             .setColor(color)
-                            .setTitle(userRequests.requests[0].userName?.toString() ?? '<user>')
+                            .setTitle(userRequests.requests[0].username?.toString() ?? '<user>')
                             .addFields(
                                 {
                                     name: ' ',
@@ -65,7 +65,7 @@ module.exports = {
                         embeds.push(embed)
                     })
                 } else {
-                    const response = await randomResponse(90, 'hour') || 'Nice.'
+                    const response = await randomResponse(2, 'hour') || 'Nice.'
                     const embed = new EmbedBuilder()
                         .setColor('#00bb00')
                         .setTitle('All Clear!')

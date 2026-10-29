@@ -12,7 +12,7 @@ export async function randomResponse(chance = 90, interval = 'hour') {
     try {
         const autoResponses = JSON.parse((await fs.readFile(autoResponsesFile, 'utf8')).toString()) || {}
 
-        let {remaining, used, last} = autoResponses
+        let {remaining, last} = autoResponses
         const {all} = autoResponses
 
         if (last && dayjs().diff(last, interval) < 1) {
@@ -22,14 +22,12 @@ export async function randomResponse(chance = 90, interval = 'hour') {
 
         if (!remaining.length) {
             remaining = [...all]
-            used = []
         }
 
         const response = remaining.splice(Math.floor(Math.random() * remaining.length), 1)
-        used.push(response[0])
         last = dayjs()
 
-        await writeJsonFileAtomic(autoResponsesFile, {all, remaining, used, last}, {spaces: 2})
+        await writeJsonFileAtomic(autoResponsesFile, {all, remaining, last}, {spaces: 2})
         return response[0]
 
     } catch (error) {

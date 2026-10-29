@@ -1,23 +1,23 @@
-export const lpuGuildId = '140129091796992000'
-export const mgGuildId = '1364643341240897587'
-export const allGuilds = [lpuGuildId, mgGuildId]
+const lpuGuildId = '140129091796992000'
+const mgGuildId = '1364643341240897587'
+const allGuilds = [lpuGuildId, mgGuildId]
 
-export const beltRequestsChannelId = '282173282546089985'
-export const announcementReactionsId = '1360395141822812311'
-export const botSpamId = '628607205419253781'
+const beltRequestsChannelId = '282173282546089985'
+const announcementReactionsId = '1360395141822812311'
+const botSpamId = '628607205419253781'
 
-export const beltRequestConfig = {
+const beltRequestConfig = {
     lpuGuildId,
     channelIds: [botSpamId, beltRequestsChannelId, announcementReactionsId],
-    webhookId: '1562548930791739543',
+    webhookIds: ['1562548930791739543', '1562162476009660489']
 }
 
-export const lpuBeltBotId = '541073446839517194'
-export const lockyJrId = '1364621479131746396'
-export const mgsecureId = '671828049540677682'
-export const allBotIds = [lpuBeltBotId, lockyJrId, mgsecureId]
-export const adminAuthorId = '1046777741963440178'
-export const modIds = [
+const lpuBeltBotId = '541073446839517194'
+const lockyJrId = '1364621479131746396'
+const mgsecureId = '671828049540677682'
+const allBotIds = [lpuBeltBotId, lockyJrId, mgsecureId]
+const adminAuthorId = '1046777741963440178'
+const modIds = [
     '97475530953068544',
     '352428596461043713',
     '164126373588238337',
@@ -26,13 +26,13 @@ export const modIds = [
     '274252922647216129'
 ]
 
-export const beltRequestChannelIds = {
+const beltRequestChannelIds = {
     //'140129091796992000': '1360395141822812311', //lpu server, #announcement-reactions
     '140129091796992000': beltRequestsChannelId, //lpu server, #belt-requests
     '1364643341240897587': '1364738104640147509' // mg server
 }
 
-export const approvedChannels = {
+const approvedChannels = {
     '1360395141822812311': {
         server: 'LPU',
         serverID: lpuGuildId,
@@ -63,4 +63,22 @@ export const approvedChannels = {
         serverID: mgGuildId,
         channelName: '#two'
     }
+}
+
+module.exports = {
+    lpuGuildId,
+    mgGuildId,
+    allGuilds,
+    beltRequestsChannelId,
+    announcementReactionsId,
+    botSpamId,
+    beltRequestConfig,
+    lpuBeltBotId,
+    lockyJrId,
+    mgsecureId,
+    allBotIds,
+    adminAuthorId,
+    modIds,
+    beltRequestChannelIds,
+    approvedChannels
 }
