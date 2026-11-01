@@ -91,6 +91,5 @@ export async function buildRequestStats(requestsFile) {
 }
 
 function initialCap(str) {
-    if (!str) return ''
-    return str.charAt(0).toUpperCase() + str.slice(1)
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : ''
 }

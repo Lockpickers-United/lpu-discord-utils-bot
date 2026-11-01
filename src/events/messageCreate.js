@@ -13,8 +13,10 @@ const beltKeywords = [
     'list', 'ls',
     'approve', 'ok',
     'reject', 'deny',
+    'review', 'unreview',
+    'checkout', 'checkin',
     'delete', 'rm',
-    'pend', 'review', 'unreview', 'moreinfo', 'info', 'history',
+    'pend', 'moreinfo', 'info', 'history',
     'sync', 'stats', 'delete_all', 'help'
 ]
 const allKeywords = [...keywords, ...beltKeywords]

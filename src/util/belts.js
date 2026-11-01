@@ -187,7 +187,6 @@ const beltRoleSortReverse = (a, b) => {
     return beltRolesReverse.indexOf(a) - beltRolesReverse.indexOf(b)
 }
 
-
 const danBeltSort = (a, b) => {
     return danBeltsFull.indexOf(a) - danBeltsFull.indexOf(b)
 }

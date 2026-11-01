@@ -33,7 +33,7 @@ async function setDiscordRole(event, eventOptions) {
         return acc
     }, {})
 
-    const allBeltRoleIds = beltRoles.map(role => roleIds[role]).filter(x => x)
+    const allBeltRoleIds = beltRoles.filter(role => role !== 'Black Belt').map(role => roleIds[role]).filter(x => x)
     allBeltRoleIds.push(roleIds['Chatter'])
 
     // TODO: preserve black belt

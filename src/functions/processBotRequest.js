@@ -1,28 +1,18 @@
 import {announce, handleBeltRequest, saveAction} from './processBeltMessage.js'
+import dayjs from 'dayjs'
 
 
 export async function processBotRequest(message, requestEmbed) {
-
-    console.log('processBotRequest', requestEmbed?.data?.fields)
 
     const fields = (requestEmbed?.data?.fields || []).reduce((acc, field) => {
         acc[field.name] = field.value
         return acc
     }, {})
 
-    console.log('fields', fields)
+    console.log('processBotRequest', fields)
 
-    const requestId = fields.requestId
-    const source = fields.source
-    const username = fields.username
+    const {requestId, source, username, belt, platform,currentBelt, syncTo, syncUsername, messageContent} = fields
     const userId = fields.userId || `${source.toLowerCase()}-${username}`
-    const belt = fields.belt
-    const messageContent = fields.messageContent
-    const platform = fields.platform
-    const currentBelt = fields.currentBelt
-
-    const syncTo = fields.syncTo
-    const syncUsername = fields.syncUsername
 
     try {
         if (platform === 'Discord') {
@@ -54,12 +44,17 @@ export async function processBotRequest(message, requestEmbed) {
                 const replaceText = response.replaceResponse
                     ? `\nThis replaces your previous ${belt} request.`
                     : ''
-                const sourceText = source === 'Reddit'
+                const sourceText = (source === 'Reddit')
                     ? `*Request from Reddit: u/${username}*\n`
                     : '*Request from lpubelts.com/request*\n'
 
-                announceText = `<@${userId}> thanks for your ${belt} request!\n`
-                    + `Details: ${messageContent}${replaceText}\n`
+                announceText = (source !== 'Reddit')
+                    ? `<@${userId}> thanks for your ${belt} request!\n`
+                    : syncUsername
+                        ? `@${syncUsername} thanks for your ${belt} request!\n`
+                        : `u/${username} thanks for your ${belt} request!\n`
+
+                announceText += `Details: ${messageContent}${replaceText}\n`
                     + sourceText
                     + `(id: ${response.id})`
             })
@@ -71,10 +66,14 @@ export async function processBotRequest(message, requestEmbed) {
         await saveAction({
             status: 'error',
             id: genHexString(8),
+            dateAdded: dayjs().format(),
+            lastUpdated: dayjs().format(),
             source,
             username,
             userId,
             belt,
+            syncTo,
+            syncUsername,
             error: error.message ?? error
         })
     }

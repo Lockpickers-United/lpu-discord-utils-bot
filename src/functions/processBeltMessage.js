@@ -15,7 +15,6 @@ import {client_id, client_secret, refresh_token} from '../../keys/reddit-keys.js
 import {buildRequestStats} from '../util/buildRequestStats.js'
 import parseBeltRequest from '../util/parseBeltRequest.js'
 import {modmailReply} from './modmailReply.js'
-import {flairDetails} from '../util/flairs.js'
 
 const beltStrings = beltRoles.reduce((acc, role) => {
     const alt = role.toLowerCase()
@@ -77,9 +76,9 @@ export async function saveAction(action) {
             if (beltRequests[existingRequest].status === action.status)
                 return {error: 'Request status was already: ' + action.status}
             beltRequests[existingRequest] = newAction
-        } else if (action.status === 'reviewing') {
+        } else if (action.status === 'checked-out') {
             beltRequests[existingRequest] = newAction
-        } else if (action.status === 'stopReviewing') {
+        } else if (action.status === 'check-in') {
             newAction.status = 'requested'
             delete newAction.reviewerId
             delete newAction.reviewerName
@@ -102,7 +101,7 @@ export async function saveAction(action) {
 export async function handleList(requestsFile) {
     const beltRequests = JSON.parse((await fs.readFile(requestsFile, 'utf8')).toString())
 
-    const requestsList = beltRequests.filter(request => ['requested', 'reviewing', 'error'].includes(request.status))
+    const requestsList = beltRequests.filter(request => ['requested', 'checked-out', 'error'].includes(request.status))
     if (requestsList.length === 0) {
         return {requestsText: 'Requests:\n\n**All clear!**', success: 'info retrieved'}
     }
@@ -127,7 +126,7 @@ export async function handleList(requestsFile) {
     organizedRequests.forEach(userRequests => {
         requestsText += `**${userRequests.requests[0].username}**\n`
         userRequests.requests.forEach(request => {
-            const reviewText = request.status === 'reviewing'
+            const reviewText = request.status === 'checked-out'
                 ? ` (${request.reviewerName} reviewing)`
                 : ''
             requestsText += `   ${request.belt}${reviewText}\n`
@@ -170,6 +169,7 @@ export async function handleBeltRequest({message, params}) {
     const action = {
         status: 'requested',
         dateAdded: dayjs().format(),
+        lastUpdated: dayjs().format(),
         id,
         messageId: message.id,
         requestId,
@@ -190,7 +190,7 @@ export async function handleBeltRequest({message, params}) {
         const action = {
             id: existingRequest.id,
             status: 'replaced',
-            updatedAt: dayjs().toISOString(),
+            lastUpdated: dayjs().toISOString(),
             lastUpdateBy: 'LockyJr',
             updateMessageId: message.id
         }
@@ -204,9 +204,9 @@ function editIsBlocked(message, existingRequest) {
     const id = existingRequest.id
     if (!existingRequest)
         return `Request ${id} not found`
-    if (existingRequest.status === 'reviewing' && existingRequest.reviewerId !== message.author?.id)
+    if (existingRequest.status === 'checked-out' && existingRequest.reviewerId !== message.author?.id)
         return `Request ${id} is being reviewed by ${existingRequest.reviewerName}.`
-    if (!['requested', 'reviewing'].includes(existingRequest.status))
+    if (!['requested', 'checked-out'].includes(existingRequest.status))
         return `Request ${id} is not pending (${existingRequest.status})`
     return false
 }
@@ -242,7 +242,18 @@ async function handleRequestApprove(message, id, notesText) {
     const blocked = editIsBlocked(message, existingRequest)
     if (blocked) return {error: blocked}
 
-    const {source, platform, userId, username, belt, messageContent, currentBelt, requestId, syncTo, syncUsername} = existingRequest
+    const {
+        source,
+        platform,
+        userId,
+        username,
+        belt,
+        messageContent,
+        currentBelt,
+        requestId,
+        syncTo,
+        syncUsername
+    } = existingRequest
 
     // flag on platform
     let transaction = {}
@@ -254,21 +265,28 @@ async function handleRequestApprove(message, id, notesText) {
     if (transaction.error) return {error: `Failed to set belt on ${platform}: ${transaction.error}`}
 
     // sync i/a
-    let redditResult = {}
     let warning = {}
+    let syncResult = {}
     let syncMessage
 
     if (syncTo === 'Discord') {
         // set discord role, announce
         console.log('Syncing Discord role placeholder')
+        try {
+            syncResult = await setDiscordRole(message, {username: syncUsername, belt})
+            syncMessage = '\n  (You\'ve also been flagged on Discord.)'
+        } catch (err) {
+            console.error('Failed to set user flair', err)
+            syncResult = {syncResult: 'Failed to set Discord role'}
+        }
 
     } else if (syncTo === 'Reddit' && syncUsername) {
         try {
-            redditResult = await setFlair(syncUsername, belt)
+            syncResult = await setFlair(syncUsername, belt)
             syncMessage = '\n  (You\'ve also been flaired on Reddit.)'
         } catch (err) {
             console.error('Failed to set user flair', err)
-            redditResult = {redditSynched: 'Failed to set Reddit flair'}
+            syncResult = {syncResult: 'Failed to set Reddit flair'}
         }
     }
 
@@ -302,11 +320,11 @@ async function handleRequestApprove(message, id, notesText) {
 
     const action = {
         id,
-        updatedAt: dayjs().format(),
+        lastUpdated: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id,
-        ...redditResult,
-        status: 'approved',
+        ...syncResult,
+        status: 'approved'
     }
     const response = await saveAction(action)
 
@@ -320,7 +338,7 @@ async function handleRequestApprove(message, id, notesText) {
         const action = {
             id: lowerBeltRequests[index].id,
             status: 'superseded',
-            updatedAt: dayjs().format(),
+            lastUpdated: dayjs().format(),
             lastUpdateBy: message.author?.username,
             updateMessageId: message.id
         }
@@ -335,7 +353,18 @@ async function handleRequestApprove(message, id, notesText) {
 async function handleRequestReject(message, id, notesText) {
     const beltRequests = JSON.parse((await fs.readFile(beltRequestsFile, 'utf8')).toString())
     const existingRequest = beltRequests.find(request => request.id === id)
-    const {source, platform, userId, username, belt, messageContent, currentBelt, requestId, syncTo, syncUsername} = existingRequest
+    const {
+        source,
+        platform,
+        userId,
+        username,
+        belt,
+        messageContent,
+        currentBelt,
+        requestId,
+        syncTo,
+        syncUsername
+    } = existingRequest
 
     const blocked = editIsBlocked(message, existingRequest)
     if (blocked) return {error: blocked}
@@ -343,7 +372,7 @@ async function handleRequestReject(message, id, notesText) {
     const action = {
         id,
         status: 'rejected',
-        updatedAt: dayjs().format(),
+        lastUpdated: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id
     }
@@ -381,14 +410,14 @@ async function handleRequestDelete(message, id) {
 
     if (!existingRequest) return {error: `Request ${id} not found`}
     if (existingRequest.status === 'deleted') return {error: `Request ${id} is already deleted.`}
-    if (existingRequest.status === 'reviewing' && existingRequest.reviewerId !== message.author?.id) {
+    if (existingRequest.status === 'checked-out' && existingRequest.reviewerId !== message.author?.id) {
         return {error: `Request ${id} is being reviewed by ${existingRequest.reviewerName}.`}
     }
 
     const action = {
         id,
         status: 'deleted',
-        updatedAt: dayjs().format(),
+        lastUpdated: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id
     }
@@ -406,7 +435,7 @@ async function handleRequestPend(message, id) {
     const action = {
         id,
         status: 'pending',
-        updatedAt: dayjs().format(),
+        lastUpdated: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id
     }
@@ -419,22 +448,22 @@ async function handleRequestReview(message, id, deactivate = false) {
     const existingRequest = beltRequests.find(request => request.id === id)
 
     if (!existingRequest) return {error: `Request ${id} not found`}
-    if (!['requested', 'reviewing'].some(stat => existingRequest.status === stat)) return {error: `Request ${id} is not pending (it's been ${existingRequest.status})`}
+    if (!['requested', 'checked-out'].some(stat => existingRequest.status === stat)) return {error: `Request ${id} is not pending (it's been ${existingRequest.status})`}
 
-    if (existingRequest.status === 'reviewing' && existingRequest.reviewerId !== message.author?.id) {
+    if (existingRequest.status === 'checked-out' && existingRequest.reviewerId !== message.author?.id) {
         return {error: `Request ${id} is being reviewed by ${existingRequest.reviewerName}.`}
     }
-    if (!deactivate && existingRequest.status === 'reviewing' && existingRequest.reviewerId === message.author?.id) {
+    if (!deactivate && existingRequest.status === 'checked-out' && existingRequest.reviewerId === message.author?.id) {
         return {error: `You are already reviewing request ${id}. Use \`unreview\` to stop.`}
     }
-    if (deactivate && existingRequest.status !== 'reviewing') {
+    if (deactivate && existingRequest.status !== 'checked-out') {
         return {error: `Request ${id} is not being reviewed.`}
     }
 
     const action = {
         id,
-        status: !deactivate ? 'reviewing' : 'stopReviewing',
-        updatedAt: dayjs().format(),
+        status: !deactivate ? 'checked-out' : 'check-in',
+        lastUpdated: dayjs().format(),
         lastUpdateBy: message.author?.username,
         updateMessageId: message.id,
         reviewerId: message.author?.id,
@@ -451,7 +480,6 @@ async function handleSync(message) {
     const beltMatch = new RegExp(`\\sync\\s+(${alternatives})\\s+(\\S*)`, 'i').exec(messageContent)
     let belt = beltMatch?.[1] ? beltStrings[beltMatch[1].toLowerCase()] : null
     let username = beltMatch?.[2] ? beltMatch[2].replace('u/', '') : null
-
     if (!belt || !username) {
         const shortBeltMatch = new RegExp(`\\bsync\\s+(${shortAlternatives})\\s+(\\S*)`, 'i').exec(messageContent)
         belt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch[1].toLowerCase()] : null
@@ -468,9 +496,9 @@ async function handleSync(message) {
         return {error: 'please use the format: `sync [Belt Color] [u/Reddit username]`\n'}
     }
 
-    let redditResult = {}
+    let syncResult = {}
     try {
-        redditResult = await setFlair(username, belt)
+        syncResult = await setFlair(username, belt)
 
         console.log(`Successfully set flair to ${belt}`)
     } catch (err) {
@@ -487,13 +515,13 @@ async function handleSync(message) {
         username: message.author?.username,
         userId: message.author?.id,
         ...redditUsername,
-        updatedAt: dayjs().format(),
+        lastUpdated: dayjs().format(),
         lastUpdateBy: message.author?.username,
         messageId: message.id
     }
     const response = await saveAction(action)
 
-    return {...action, ...response, ...redditResult}
+    return {...action, ...response, ...syncResult}
 }
 
 async function handleMoreInfo(requestId) {
@@ -518,7 +546,7 @@ async function handleHistory(beltRequestsFile, target) {
             return (
                 `${request.belt.toUpperCase()} (${request.status?.toString()})\n`
                 + ` ${'Requested'.padEnd(13)}${request.dateAdded?.toString()}\n`
-                + `${request.updatedAt ? ` ${'Updated'.padEnd(13)}${request.updatedAt?.toString()}\n` : ''}`
+                + `${request.lastUpdated ? ` ${'Updated'.padEnd(13)}${request.lastUpdated?.toString()}\n` : ''}`
                 + `${request.lastUpdateBy ? ` ${'Reviewer'.padEnd(13)}${request.lastUpdateBy?.toString()}\n` : ''}`
                 + ` ${'ID'.padEnd(13)}${request.id?.toString()}\n`
             )
@@ -634,14 +662,14 @@ export async function processBeltMessage(message) {
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
-    } else if (action === 'review') {
+    } else if (action === 'checkout') {
         await handleRequestReview(message, id, false).then(response => {
             replyText = response.success
                 ? `You are now reviewing the request from @${response.username} for ${response.belt}.`
                 : `Sorry <@${message.author.id}>: ${response.error}`
         })
 
-    } else if (action === 'unreview') {
+    } else if (action === 'checkin') {
         await handleRequestReview(message, id, true).then(response => {
             replyText = response.success
                 ? `You are no longer reviewing the ${response.belt} request from @${response.username}.`
