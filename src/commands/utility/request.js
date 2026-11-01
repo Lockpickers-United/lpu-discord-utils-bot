@@ -1,8 +1,8 @@
-const {SlashCommandBuilder, EmbedBuilder} = require('discord.js')
-const {handleList} = require('../../functions/processBeltMessage.js')
-const {beltRequestsFile} = require('../../../keys/botConfig.js')
+import {SlashCommandBuilder, EmbedBuilder} from 'discord.js'
+import {handleList} from '../../functions/processBeltMessage.js'
+import {beltRequestsFile} from '../../../keys/botConfig.js'
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('request')
         .setDescription('Act on belt requests')

@@ -238,8 +238,7 @@ function moveToLast(arr, value) {
     return arr
 }
 
-module.exports = {
-    default: belts,
+export {
     beltRoles,
     danAltNames,
     allBelts,
@@ -259,3 +258,5 @@ module.exports = {
     projectTiers,
     modifierMultiplier
 }
+
+export default belts

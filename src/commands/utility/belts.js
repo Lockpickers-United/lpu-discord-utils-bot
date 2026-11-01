@@ -1,11 +1,11 @@
-const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
-const {approvedChannels} = require('../../data/config.js')
-const {setDeepUnique, setDeepAdd} = require('../../util/setDeep')
-const {beltRoles, beltRoleSort} = require('../../util/belts')
-const fs = require('node:fs/promises')
-const {localUser, prodUser} = require('../../../keys/users')
+import {SlashCommandBuilder, EmbedBuilder, MessageFlags} from 'discord.js'
+import {approvedChannels} from '../../data/config.js'
+import {setDeepUnique, setDeepAdd} from '../../util/setDeep.js'
+import {beltRoles, beltRoleSort} from '../../util/belts.js'
+import fs from 'node:fs/promises'
+import {localUser, prodUser} from '../../../keys/users.js'
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('belts')
         .setDescription('View User Belt Counts'),

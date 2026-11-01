@@ -1,6 +1,6 @@
-const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
+import {SlashCommandBuilder, EmbedBuilder, MessageFlags} from 'discord.js'
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('privacy')
         .setDescription('View our Privacy Policy'),

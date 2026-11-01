@@ -65,7 +65,7 @@ const approvedChannels = {
     }
 }
 
-module.exports = {
+export {
     lpuGuildId,
     mgGuildId,
     allGuilds,

@@ -1,6 +1,6 @@
-const {EmbedBuilder, MessageFlags} = require('discord.js')
-const dayjs = require('dayjs')
-const relativeTime = require('dayjs/plugin/relativeTime')
+import {EmbedBuilder, MessageFlags} from 'discord.js'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime.js'
 dayjs.extend(relativeTime)
 
 async function getChannelInfo(message) {
@@ -98,4 +98,4 @@ function removeEmoji(str) {
 }
 
 
-module.exports = getChannelInfo
+export default getChannelInfo

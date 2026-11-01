@@ -1,9 +1,9 @@
-const {Events} = require('discord.js')
+import {Events} from 'discord.js'
 
 const MONITOR_CHANNEL_ID = '282170926064336907'
 const LOG_CHANNEL_ID = '1360395141822812311'
 
-module.exports = {
+export default {
     name: Events.MessageReactionAdd,
     async execute(reaction, user) {
         if (reaction.partial) {

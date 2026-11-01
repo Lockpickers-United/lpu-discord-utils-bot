@@ -1,6 +1,6 @@
-const {flairDetails} = require('../util/flairs.js')
-const snoowrap = require('snoowrap')
-const {client_id, client_secret, refresh_token} = require('../../keys/reddit-keys.js')
+import {flairDetails} from '../util/flairs.js'
+import snoowrap from 'snoowrap'
+import {client_id, client_secret, refresh_token} from '../../keys/reddit-keys.js'
 
 async function setRedditFlair(subredditName, username, belt) {
 
@@ -40,4 +40,4 @@ async function setRedditFlair(subredditName, username, belt) {
     return {status: 'success'}
 }
 
-module.exports = setRedditFlair
+export default setRedditFlair

@@ -34,5 +34,5 @@ async function cleanMessage(message) {
     }
 }
 
-module.exports = cleanMessage
+export default cleanMessage
 

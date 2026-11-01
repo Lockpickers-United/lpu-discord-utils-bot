@@ -1,23 +1,23 @@
 // noinspection JSCheckFunctionSignatures
 
-const {SlashCommandBuilder, PermissionFlagsBits, MessageFlags} = require('discord.js')
-const fs = require('fs')
-const dayjs = require('dayjs')
+import {SlashCommandBuilder, PermissionFlagsBits, MessageFlags} from 'discord.js'
+import fs from 'fs'
+import dayjs from 'dayjs'
 const {readFile, writeFile} = fs.promises
-const isValidEvent = require('../../functions/isValidEvent')
-const setRedditFlair = require('../../functions/setRedditFlair.js')
-const setDiscordRole = require('../../functions/setDiscordRole')
+import isValidEvent from '../../functions/isValidEvent.js'
+import setRedditFlair from '../../functions/setRedditFlair.js'
+import setDiscordRole from '../../functions/setDiscordRole.js'
 
-const snoowrap = require('snoowrap')
-const {client_id, client_secret, refresh_token} = require('../../../keys/reddit-keys.js')
-const {flairDetails} = require('../../util/flairs.js')
-const {localUser, prodUser} = require('../../../keys/users.js')
+import snoowrap from 'snoowrap'
+import {client_id, client_secret, refresh_token} from '../../../keys/reddit-keys.js'
+import {flairDetails} from '../../util/flairs.js'
+import {localUser, prodUser} from '../../../keys/users.js'
 const prodEnvironment = process.env.USER !== localUser
 const dataDir = prodEnvironment
     ? `/home/${prodUser}/discord-utils-bot-logs`
     : `/Users/${localUser}/Documents/GitHub/lpu-discord-utils-bot/data`
 
-module.exports = {
+export default {
     data: new SlashCommandBuilder()
         .setName('flair')
         .setDescription('Set belt flair on Reddit')

@@ -1,6 +1,6 @@
-const {beltRequestChannelIds} = require('../data/config.js')
-const {beltRoles} = require('../util/belts.js')
-const {PermissionFlagsBits} = require('discord.js')
+import {beltRequestChannelIds} from '../data/config.js'
+import {beltRoles} from '../util/belts.js'
+import {PermissionFlagsBits} from 'discord.js'
 
 async function setDiscordRole(event, eventOptions) {
 
@@ -86,4 +86,4 @@ async function setDiscordRole(event, eventOptions) {
 
 }
 
-module.exports = setDiscordRole
+export default setDiscordRole

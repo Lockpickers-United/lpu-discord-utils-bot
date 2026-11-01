@@ -1,4 +1,4 @@
-const {allGuilds, approvedChannels} = require('../data/config.js')
+import {allGuilds, approvedChannels} from '../data/config.js'
 
 async function isValidEvent(event, allowBots = false) {
 
@@ -36,4 +36,4 @@ async function isValidEvent(event, allowBots = false) {
     return {valid: true}
 }
 
-module.exports = isValidEvent
+export default isValidEvent

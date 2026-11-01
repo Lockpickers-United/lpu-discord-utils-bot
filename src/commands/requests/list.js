@@ -1,11 +1,12 @@
-const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
-const {handleList} = require('../../functions/processBeltMessage.js')
-const {default: belts} = require('../../util/belts.js')
-const {randomResponse} = require('../../util/randomResponse.js')
+import {fileURLToPath} from 'node:url'
+import {SlashCommandBuilder, EmbedBuilder, MessageFlags} from 'discord.js'
+import {handleList} from '../../functions/processBeltMessage.js'
+import belts from '../../util/belts.js'
+import {randomResponse} from '../../util/randomResponse.js'
 
-const path = require('node:path')
+import path from 'node:path'
 
-module.exports = {
+export default {
     category: 'requests',
     data: new SlashCommandBuilder()
         .setName('list')
@@ -15,7 +16,7 @@ module.exports = {
 
         if (interaction.user.bot) return
 
-        const beltRequestsFile = path.join(__dirname, '../../..', 'data/beltRequests.json')
+        const beltRequestsFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../..', 'data/beltRequests.json')
 
         let replyText
         let embeds = []

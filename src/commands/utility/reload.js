@@ -1,6 +1,7 @@
-const { SlashCommandBuilder, MessageFlags} = require('discord.js')
+import {randomUUID} from 'node:crypto'
+import { SlashCommandBuilder, MessageFlags} from 'discord.js'
 
-module.exports = {
+export default {
     category: 'utility',
     data: new SlashCommandBuilder()
         .setName('reload')
@@ -25,10 +26,11 @@ module.exports = {
             return interaction.reply(`There is no command with name \`${commandName}\`!`)
         }
 
-        delete require.cache[require.resolve(`../${command.category}/${command.data.name}.js`)]
-
         try {
-            const newCommand = require(`../${command.category}/${command.data.name}.js`)
+            const commandUrl = new URL(`../${command.category}/${command.data.name}.js`, import.meta.url)
+            // A unique URL reloads this command; shared dependencies stay cached.
+            commandUrl.searchParams.set('reload', randomUUID())
+            const {default: newCommand} = await import(commandUrl.href)
             await interaction.client.commands.set(newCommand.data.name, newCommand)
             await interaction.reply(`Command \`${newCommand.data.name}\` was reloaded!`, {flags: [MessageFlags.Ephemeral]})
         } catch (error) {

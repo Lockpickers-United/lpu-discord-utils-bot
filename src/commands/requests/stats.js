@@ -1,9 +1,10 @@
-const {SlashCommandBuilder, EmbedBuilder, MessageFlags} = require('discord.js')
-const path = require('node:path')
-const {buildRequestStats} = require('../../util/buildRequestStats.js')
+import {fileURLToPath} from 'node:url'
+import {SlashCommandBuilder, EmbedBuilder, MessageFlags} from 'discord.js'
+import path from 'node:path'
+import {buildRequestStats} from '../../util/buildRequestStats.js'
 
 
-module.exports = {
+export default {
     category: 'requests',
     data: new SlashCommandBuilder()
         .setName('stats')
@@ -12,7 +13,7 @@ module.exports = {
     async execute(interaction) {
 
         if (interaction.user.bot) return
-        const beltRequestsFile = path.join(__dirname, '../../..', 'data/beltRequests.json')
+        const beltRequestsFile = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../..', 'data/beltRequests.json')
 
         let replyText
         let embeds = []

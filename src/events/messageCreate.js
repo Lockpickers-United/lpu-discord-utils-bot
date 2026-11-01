@@ -1,11 +1,11 @@
-const {Events, MessageFlags, PermissionFlagsBits} = require('discord.js')
-const cleanMessage = require('../util/cleanMessage.js')
-const getChannelInfo = require('../functions/getChannelInfo.js')
-const {beltRequestChannelIds, lpuBeltBotId, beltRequestConfig} = require('../data/config.js')
-const isValidEvent = require('../functions/isValidEvent.js')
-const {processBeltMessage} = require('../functions/processBeltMessage.js')
-const {helpText, modHelpText} = require('../data/helpText.js')
-const {processBotRequest} = require('../functions/processBotRequest')
+import {Events, MessageFlags, PermissionFlagsBits} from 'discord.js'
+import cleanMessage from '../util/cleanMessage.js'
+import getChannelInfo from '../functions/getChannelInfo.js'
+import {beltRequestChannelIds, lpuBeltBotId, beltRequestConfig} from '../data/config.js'
+import isValidEvent from '../functions/isValidEvent.js'
+import {processBeltMessage} from '../functions/processBeltMessage.js'
+import {helpText, modHelpText} from '../data/helpText.js'
+import {processBotRequest} from '../functions/processBotRequest.js'
 
 const keywords = ['channel info']
 const beltKeywords = [
@@ -22,7 +22,7 @@ const beltKeywords = [
 const allKeywords = [...keywords, ...beltKeywords]
 const warnResponse = true
 
-module.exports = {
+export default {
     name: Events.MessageCreate,
 
     async execute(message) {

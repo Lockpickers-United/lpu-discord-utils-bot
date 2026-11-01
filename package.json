@@ -20,9 +20,10 @@
     "nodemon": "^2.0.22"
   },
   "scripts": {
-    "dev": "nodemon ",
-    "start": "node ",
+    "dev": "nodemon src/locky-junior.js",
+    "start": "node src/locky-junior.js",
     "deploy": "node src/deployCommands.js",
     "lint": "eslint ./src"
-  }
+  },
+  "type": "module"
 }
