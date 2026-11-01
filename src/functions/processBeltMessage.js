@@ -68,7 +68,7 @@ export async function saveAction(action) {
 
         const newAction = {...beltRequests[existingRequest], ...action}
 
-        if (existingRequest === -1 && ['requested', 'synced', 'error'].includes(action.status)) {
+        if (existingRequest === -1 && ['open', 'synced', 'error'].includes(action.status)) {
             beltRequests.unshift(action)
         } else if (existingRequest === -1) {
             return {error: `No request found with id ${action.id}`}
@@ -79,12 +79,12 @@ export async function saveAction(action) {
         } else if (action.status === 'checked-out') {
             beltRequests[existingRequest] = newAction
         } else if (action.status === 'check-in') {
-            newAction.status = 'requested'
+            newAction.status = 'open'
             delete newAction.reviewerId
             delete newAction.reviewerName
             beltRequests[existingRequest] = newAction
         } else if (action.status === 'pending') {
-            newAction.status = 'requested'
+            newAction.status = 'open'
             beltRequests[existingRequest] = newAction
         } else {
             return {error: 'Invalid action to save: ' + action.status}
@@ -101,7 +101,7 @@ export async function saveAction(action) {
 export async function handleList(requestsFile) {
     const beltRequests = JSON.parse((await fs.readFile(requestsFile, 'utf8')).toString())
 
-    const requestsList = beltRequests.filter(request => ['requested', 'checked-out', 'error'].includes(request.status))
+    const requestsList = beltRequests.filter(request => ['open', 'checked-out', 'error'].includes(request.status))
     if (requestsList.length === 0) {
         return {requestsText: 'Requests:\n\n**All clear!**', success: 'info retrieved'}
     }
@@ -162,12 +162,12 @@ export async function handleBeltRequest({message, params}) {
         .find(
             request => request.userId === userId
                 && request.belt === belt
-                && request.status === 'requested'
+                && request.status === 'open'
         )
 
     const id = genHexString(8)
     const action = {
-        status: 'requested',
+        status: 'open',
         dateAdded: dayjs().format(),
         lastUpdated: dayjs().format(),
         id,
@@ -206,7 +206,7 @@ function editIsBlocked(message, existingRequest) {
         return `Request ${id} not found`
     if (existingRequest.status === 'checked-out' && existingRequest.reviewerId !== message.author?.id)
         return `Request ${id} is being reviewed by ${existingRequest.reviewerName}.`
-    if (!['requested', 'checked-out'].includes(existingRequest.status))
+    if (!['open', 'checked-out'].includes(existingRequest.status))
         return `Request ${id} is not pending (${existingRequest.status})`
     return false
 }
@@ -329,7 +329,7 @@ async function handleRequestApprove(message, id, notesText) {
     const response = await saveAction(action)
 
     const lowerBeltRequests = [...beltRequests]
-        .filter(request => request.userId === existingRequest.userId && request.status === 'requested')
+        .filter(request => request.userId === existingRequest.userId && request.status === 'open')
         .filter(request => beltRoles.indexOf(request.belt) < currentBeltIndex)
 
     const supersededResponses = []
@@ -430,7 +430,7 @@ async function handleRequestPend(message, id) {
     const existingRequest = beltRequests.find(request => request.id === id)
 
     if (!existingRequest) return {error: `Request ${id} not found`}
-    if (existingRequest.status === 'requested') return {error: `Request ${id} is already pending.`}
+    if (existingRequest.status === 'open') return {error: `Request ${id} is already pending.`}
 
     const action = {
         id,
@@ -448,7 +448,7 @@ async function handleRequestReview(message, id, deactivate = false) {
     const existingRequest = beltRequests.find(request => request.id === id)
 
     if (!existingRequest) return {error: `Request ${id} not found`}
-    if (!['requested', 'checked-out'].some(stat => existingRequest.status === stat)) return {error: `Request ${id} is not pending (it's been ${existingRequest.status})`}
+    if (!['open', 'checked-out'].some(stat => existingRequest.status === stat)) return {error: `Request ${id} is not pending (it's been ${existingRequest.status})`}
 
     if (existingRequest.status === 'checked-out' && existingRequest.reviewerId !== message.author?.id) {
         return {error: `Request ${id} is being reviewed by ${existingRequest.reviewerName}.`}
