@@ -4,6 +4,7 @@ import {client_id, client_secret, refresh_token} from '../../keys/reddit-keys.js
 
 async function setRedditFlair(subredditName, username, belt) {
 
+
     const reddit = new snoowrap({
         userAgent: 'modmail-sync by u/mgsecure',
         clientId: client_id,
@@ -13,7 +14,8 @@ async function setRedditFlair(subredditName, username, belt) {
     await reddit.getMe()
     const token = reddit.accessToken
 
-    const {id} = flairDetails[belt]
+    const flair = belt.replace(' Belt', '')
+    const {id} = flairDetails[flair]
 
     const url = `https://oauth.reddit.com/r/${subredditName}/api/selectflair`
     const body = new URLSearchParams({

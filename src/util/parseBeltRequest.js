@@ -1,24 +1,18 @@
 import {beltRoles} from './belts.js'
 
 const beltStrings = beltRoles.reduce((acc, role) => {
+    acc[role.toLowerCase()] = role
     const alt = role.toLowerCase()
         .replace(/(\d+)(st|nd|rd|th) dan/i, 'dan $1')
-    acc[role.toLowerCase()] = role
-    acc[alt] = role
-    return acc
-}, {})
-const shortBeltStrings = beltRoles.reduce((acc, role) => {
-    const alt = role.toLowerCase()
+    const short = role.toLowerCase()
         .replace(/\s*belt$/, '')
-        .replace(/(\d+)(st|nd|rd|th) dan/i, 'dan $1')
-    acc[role.toLowerCase()] = role
     acc[alt] = role
+    acc[short] = role
     return acc
 }, {})
-const alternatives = Object.keys(beltStrings)
-    .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-    .join('|')
-const shortAlternatives = Object.keys(shortBeltStrings)
+
+const allBeltStrings = Object.keys(beltStrings).sort((a, b) => b.length - a.length)
+const alternatives = allBeltStrings
     .map(name => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     .join('|')
 
@@ -35,12 +29,6 @@ export default function parseBeltRequest(messageContent) {
     const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
     let belt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
     let evidence = beltMatch?.[2] ?? null
-
-    if (!belt) {
-        const shortBeltMatch = new RegExp(`\\brequest\\s+(${shortAlternatives})\\s*(\\S*)`, 'i').exec(messageContent)
-        belt = shortBeltMatch?.[1] ? shortBeltStrings[shortBeltMatch?.[1].toLowerCase()] : null
-        evidence = shortBeltMatch?.[2] ?? null
-    }
 
     const syncUsernameMatch = new RegExp('u\\/(\\S*)\\b', 'i').exec(messageContent)
     const syncMatch = syncUsernameMatch?.[1] ? syncUsernameMatch[1] : null

@@ -6,9 +6,11 @@ import isValidEvent from '../functions/isValidEvent.js'
 import {processBeltMessage} from '../functions/processBeltMessage.js'
 import {helpText, modHelpText} from '../data/helpText.js'
 import {processBotRequest} from '../functions/processBotRequest.js'
+import handleBeltMessage from '../functions/handleBeltMessage.js'
 
 const keywords = ['channel info']
 const beltKeywords = [
+    'test',
     'request',
     'list', 'ls',
     'approve', 'ok',
@@ -22,11 +24,18 @@ const beltKeywords = [
 const allKeywords = [...keywords, ...beltKeywords]
 const warnResponse = true
 
+console.log('Events.MessageCreate')
+
 export default {
     name: Events.MessageCreate,
 
     async execute(message) {
 
+        if (message.author?.username !== 'mgsecure') {
+            console.log('request from', message.author?.username)
+            return false
+        }
+        
         const check = await isValidEvent(message, true)
         if (!check.valid) {
             //console.error('error: ', check.reason)
@@ -34,7 +43,7 @@ export default {
             return
         }
 
-        const requestEmbed = message.embeds.find(embed => embed.data.title.includes('New Belt Request'))
+        const requestEmbed = message.embeds?.find(embed => embed.data?.title?.includes('New Belt Request'))
 
         const acceptedRequest = (
             beltRequestConfig.webhookIds.includes(message.webhookId)
@@ -74,11 +83,6 @@ export default {
             return
         }
 
-        if (message.author?.username !== 'mgsecure') {
-            console.log('request from', message.author?.username)
-            //return false
-        }
-
         if (message.partial) {
             try {
                 await message.fetch()
@@ -109,6 +113,12 @@ export default {
             return
         }
 
+        if (mentioned && messageContent.toLowerCase().includes('[me] test')) {
+            handleBeltMessage(message)
+            console.log('\'[me] test\'')
+            return
+        }
+
         if (!allKeywords.some(substr => messageContent.toLowerCase().includes(substr))) {
             return
         }
@@ -116,8 +126,6 @@ export default {
         if (mentioned && beltKeywords.some(keyword => messageContent.toLowerCase().includes(keyword))) {
 
             const replyText = await processBeltMessage(message)
-
-            console.log('replyText', replyText)
 
             try {
 

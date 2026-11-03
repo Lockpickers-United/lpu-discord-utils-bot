@@ -1,40 +1,12 @@
 import {fileURLToPath, pathToFileURL} from 'node:url'
-// From: https://discordjs.guide/creating-your-bot/main-file.html
 import fs from 'node:fs'
 import path from 'node:path'
 import {token} from '../keys/keys.js'
 
-import {Client, Collection, GatewayIntentBits, Partials} from 'discord.js'
+import {client} from './client.js'
 
 //const MONITOR_CHANNEL_ID = '1364738104640147509'
 //const LOG_CHANNEL_ID = '1364738135749169172'
-
-/**
- * @prop Guilds
- * @prop GuildMessages
- * @prop GuildMembers
- * @prop DirectMessages
- * @prop MessageContent
- * @prop GuildMessageReactions
- */
-
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMessageReactions
-    ],
-    partials: [
-        Partials.Message,
-        Partials.Channel,
-        Partials.Reaction
-    ]
-})
-
-client.commands = new Collection()
 
 const foldersPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'commands')
 const commandFolders = fs.readdirSync(foldersPath).filter(f => !f.includes('DS_Store'))
@@ -56,14 +28,20 @@ for (const folder of commandFolders) {
 const eventsPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'events')
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'))
 for (const file of eventFiles) {
-    const filePath = path.join(eventsPath, file)
-    const {default: event} = await import(pathToFileURL(filePath).href)
-    if (event.once) {
-        client.once(event.name, (...args) => event.execute(...args))
-    } else {
-        client.on(event.name, (...args) => event.execute(...args))
+    try {
+        const filePath = path.join(eventsPath, file)
+        console.log(`[INFO] Loading file ${filePath}`)
+
+        const {default: event} = await import(pathToFileURL(filePath).href)
+        if (event.once) {
+            client.once(event.name, (...args) => event.execute(...args))
+        } else {
+            client.on(event.name, (...args) => event.execute(...args))
+        }
+        console.log(`[INFO] - Loaded event ${file}`)
+    } catch (error) {
+        console.error(`[ERROR] Failed to load event ${file}: ${error}`)
     }
 }
-
 
 client.login(token).then()
