@@ -17,6 +17,7 @@ const beltKeywords = [
     'review', 'unreview',
     'checkout', 'checkin',
     'delete', 'rm',
+    'retry',
     'pend', 'moreinfo', 'info', 'history',
     'sync', 'stats', 'delete_all', 'help'
 ]
@@ -31,9 +32,9 @@ export default {
 
     async execute(message) {
 
-        if (message.author?.username !== 'mgsecure') {
-            console.log('request from', message.author?.username)
-            return false
+        if (message.author?.username !== 'mgsecure' && testMode) {
+            //console.log('request from', message.author?.username)
+            //return false
         }
 
         const check = await isValidEvent(message, true)

@@ -3,7 +3,9 @@ import path from 'path'
 /** @function caller.getFileName */
 /** @function caller.getLineNumber */
 
-const suffix = ' | test'
+// TODO get test flags
+
+const suffix = ''
 const originalLog = console.log
 
 console.log = function(...args) {

@@ -10,6 +10,8 @@ import setDiscordRole from './setDiscordRole.js'
 import setRedditFlair from './setRedditFlair.js'
 import {modmailReply} from './modmailReply.js'
 import {processListRequest} from './processListRequest.js'
+import {client} from '../client.js'
+import {beltRequestsChannelId} from '../data/config.js'
 
 export async function handleBeltRequest({message, params}) {
     const {
@@ -166,14 +168,14 @@ export async function approveRequest({message, beltRequests, request, user, note
 
     if (platform === 'Discord') {
         const announceNotes = notesText?.length ? notesText : getDefaultMessage(belt)
-        const reviewerRef = message ? `<@${message?.author?.id}>` : user.name
+        const reviewerRef = message ? `<@${message?.author?.id}>` : `**${user.name}**`
         let announceText = `<@${userId}>, ${reviewerRef} has reviewed and `
             + `approved your request. Congrats on your ${belt}! ${announceNotes}`
         if (syncMessage) announceText += syncMessage
         try {
             await handleAnnounce({message, request, platform, announceText})
         } catch (err) {
-            console.error('Failed to announce approval.')
+            console.error(`Failed to announce approval. ${err}`)
             warning = {warning: 'Failed to announce approval.'}
         }
     } else if (source === 'Reddit') {
@@ -255,7 +257,7 @@ export async function denyRequest({message, request, user, force = false, notes}
         try {
             await handleAnnounce({message, request, platform, announceText})
         } catch (err) {
-            console.error('Failed to announce denial.')
+            console.error('Failed to announce denial.', err)
             throw new Error('Failed to announce denial.')
         }
     } else if (source === 'Reddit') {
@@ -316,7 +318,6 @@ async function checkinRequest({request, user, force}) {
     }
 }
 
-
 export default async function processBeltMessage(message) {
 
     const messageContent = (await cleanMessage(message))?.replace(/^\[me] test/i, '[me]').trim()
@@ -344,7 +345,7 @@ export default async function processBeltMessage(message) {
         const params = {
             source: 'Discord',
             platform: 'Discord',
-            username: message.member.displayName ?? message.author.username,
+            username: message?.member?.displayName ?? message?.author?.username,
             userId: message.author.id,
             belt,
             messageContent,
@@ -369,6 +370,20 @@ export default async function processBeltMessage(message) {
         }
 
         await handleReply({message, platform: 'Discord', replyText})
+
+    } else if (action === 'retry') {
+        // await retryRequest(id)
+        try {
+            const channel = await client.channels.fetch(beltRequestsChannelId)
+            const message = await channel.messages.fetch(id)
+            console.log('cleanMessage(message)', await cleanMessage(message))
+            await processBeltMessage(message)
+            return `${id} has tried again?`
+
+        } catch (error) {
+            throw new Error(`Error while retrying request ${id}: ${error.message}`)
+        }
+
 
     } else if (['list', 'ls'].some(a => a === action)) {
         console.log('list')

@@ -27,15 +27,12 @@ const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'
 for (const file of eventFiles) {
     try {
         const filePath = path.join(eventsPath, file)
-        console.log(`Loading file ${filePath}`)
-
         const {default: event} = await import(pathToFileURL(filePath).href)
         if (event.once) {
             client.once(event.name, (...args) => event.execute(...args))
         } else {
             client.on(event.name, (...args) => event.execute(...args))
         }
-        console.log(`- Loaded event ${file}`)
     } catch (error) {
         console.error(`[ERROR] Failed to load event ${file}: ${error}`)
     }
