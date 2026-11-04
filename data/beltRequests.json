@@ -1,5 +1,22 @@
 [
   {
+    "status": "open",
+    "dateAdded": "2026-11-02T22:37:49-08:00",
+    "lastUpdated": "2026-11-02T22:37:49-08:00",
+    "id": "3dcf31e8",
+    "messageId": "1567065244348452865",
+    "requestId": "1567065244348452865",
+    "source": "Discord",
+    "platform": "Discord",
+    "userId": "671828049540677682",
+    "username": "mgsecure",
+    "belt": "Blue Belt",
+    "messageContent": "[me] request blue please",
+    "currentBelt": "tk",
+    "syncTo": null,
+    "syncUsername": null
+  },
+  {
     "status": "approved",
     "dateAdded": "2026-11-02T07:15:03-08:00",
     "lastUpdated": "2026-11-02T07:21:35-08:00",

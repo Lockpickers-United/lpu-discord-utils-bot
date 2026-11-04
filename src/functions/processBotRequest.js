@@ -1,5 +1,5 @@
-import {announce, handleBeltRequest, saveAction} from './processBeltMessage.js'
-import dayjs from 'dayjs'
+import {handleBeltRequest} from './processBeltMessage.js'
+import {handleAnnounce} from './handleMessageRespond.js'
 
 
 export async function processBotRequest(message, requestEmbed) {
@@ -18,13 +18,14 @@ export async function processBotRequest(message, requestEmbed) {
         if (platform === 'Discord') {
             const user = await message.guild.members.fetch(userId)
             user?.user?.username && console.log(`Found user: ${user?.user?.username}`)
+
             if (!user) throw new Error('User not found')
             if (user.user?.username !== username) throw new Error('Wrong user')
         }
 
         let announceText
 
-        await handleBeltRequest({
+        const response = await handleBeltRequest({
             message,
             params: {
                 source,
@@ -39,51 +40,29 @@ export async function processBotRequest(message, requestEmbed) {
                 syncUsername
             }
         })
-            .then(response => {
-                if (response.error) throw new Error(response.error)
-                const replaceText = response.replaceResponse
+
+            if (response) {
+                const replaceText = response.replaceText
                     ? `\nThis replaces your previous ${belt} request.`
                     : ''
-                const sourceText = (source === 'Reddit')
+                const sourceText = source === 'Reddit'
                     ? `*Request from Reddit: u/${username}*\n`
                     : '*Request from lpubelts.com/request*\n'
 
-                announceText = (source !== 'Reddit')
+                announceText = source !== 'Reddit'
                     ? `<@${userId}> thanks for your ${belt} request!\n`
                     : syncUsername
                         ? `@${syncUsername} thanks for your ${belt} request!\n`
                         : `u/${username} thanks for your ${belt} request!\n`
-
                 announceText += `Details: ${messageContent}${replaceText}\n`
                     + sourceText
                     + `(id: ${response.id})`
-            })
+            }
 
-        await announce(message, announceText)
+        await handleAnnounce({message, beltRequest: response.beltRequest, platform: 'Discord', announceText})
 
     } catch (error) {
         console.error(`belt request error. (${error})`)
-        await saveAction({
-            status: 'error',
-            id: genHexString(8),
-            dateAdded: dayjs().format(),
-            lastUpdated: dayjs().format(),
-            source,
-            username,
-            userId,
-            belt,
-            syncTo,
-            syncUsername,
-            error: error.message ?? error
-        })
+        // TODO: save error entry
     }
-}
-
-function genHexString(len) {
-    const hex = '0123456789ABCDEF'
-    let output = ''
-    for (let i = 0; i < len; ++i) {
-        output += hex.charAt(Math.floor(Math.random() * hex.length))
-    }
-    return output.toLowerCase()
 }

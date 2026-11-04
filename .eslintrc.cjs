@@ -11,10 +11,14 @@ module.exports = {
         sourceType: 'module'
     },
     rules: {
-        'no-unused-vars': [
-            'warn', {
-                'ignoreRestSiblings': true
-            }
-        ]
+        'no-unused-vars': ['warn', {
+            ignoreRestSiblings: true,
+            args: 'all',
+            argsIgnorePattern: '^_',
+            varsIgnorePattern: '^(React|_)',
+            destructuredArrayIgnorePattern: '^_',
+            caughtErrors: 'all',
+            caughtErrorsIgnorePattern: '^_',
+        }],
     }
 }

@@ -1,12 +1,11 @@
-import {Events, MessageFlags, PermissionFlagsBits} from 'discord.js'
+import {Events} from 'discord.js'
 import cleanMessage from '../util/cleanMessage.js'
 import getChannelInfo from '../functions/getChannelInfo.js'
 import {beltRequestChannelIds, lpuBeltBotId, beltRequestConfig} from '../data/config.js'
 import isValidEvent from '../functions/isValidEvent.js'
-import {processBeltMessage} from '../functions/processBeltMessage.js'
 import {helpText, modHelpText} from '../data/helpText.js'
 import {processBotRequest} from '../functions/processBotRequest.js'
-import handleBeltMessage from '../functions/handleBeltMessage.js'
+import processBeltMessage from '../functions/processBeltMessage.js'
 
 const keywords = ['channel info']
 const beltKeywords = [
@@ -24,7 +23,8 @@ const beltKeywords = [
 const allKeywords = [...keywords, ...beltKeywords]
 const warnResponse = true
 
-console.log('Events.MessageCreate')
+const testMode = false
+const testOnly = false
 
 export default {
     name: Events.MessageCreate,
@@ -35,7 +35,7 @@ export default {
             console.log('request from', message.author?.username)
             return false
         }
-        
+
         const check = await isValidEvent(message, true)
         if (!check.valid) {
             //console.error('error: ', check.reason)
@@ -113,9 +113,10 @@ export default {
             return
         }
 
-        if (mentioned && messageContent.toLowerCase().includes('[me] test')) {
-            handleBeltMessage(message)
-            console.log('\'[me] test\'')
+        if (testMode && mentioned && messageContent.toLowerCase().includes('[me] test')) {
+            processBeltMessage(message)
+            return
+        } else if (testOnly) {
             return
         }
 
@@ -124,33 +125,13 @@ export default {
         }
 
         if (mentioned && beltKeywords.some(keyword => messageContent.toLowerCase().includes(keyword))) {
-
-            const replyText = await processBeltMessage(message)
-
             try {
-
-                const beltRequestChannelId = beltRequestChannelIds[message.guildId]
-                if (!beltRequestChannelId)
-                    throw new Error(`No belt request channel ID found for guildId: ${message.guildId}`)
-
-                const beltRequestsChannel = await message.client.channels.fetch(beltRequestChannelId)
-                if (!beltRequestsChannel?.isTextBased())
-                    throw new Error('Belt Requests channel not text-based')
-
-                const perms = beltRequestsChannel.permissionsFor(message.client.user)
-                if (!beltRequestsChannel.viewable || !perms?.has(PermissionFlagsBits.SendMessages))
-                    throw new Error('Missing access to beltRequestsChannel')
-
-                const permissions = message.channel.permissionsFor(message.client.user)
-                if (!permissions?.has(PermissionFlagsBits.SendMessages))
-                    throw new Error(`Missing access to ${message.channel.id}`)
-
-                replyText && await message.reply({content: replyText.toString(), flags: [MessageFlags.Ephemeral]})
-
+                await processBeltMessage(message)
             } catch (error) {
                 console.error('Error sending message:', error)
             }
         }
+
     }
 }
 

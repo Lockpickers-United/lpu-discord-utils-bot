@@ -2,11 +2,8 @@ import {fileURLToPath, pathToFileURL} from 'node:url'
 import fs from 'node:fs'
 import path from 'node:path'
 import {token} from '../keys/keys.js'
-
 import {client} from './client.js'
-
-//const MONITOR_CHANNEL_ID = '1364738104640147509'
-//const LOG_CHANNEL_ID = '1364738135749169172'
+import './util/patchLog.js'
 
 const foldersPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'commands')
 const commandFolders = fs.readdirSync(foldersPath).filter(f => !f.includes('DS_Store'))
@@ -30,7 +27,7 @@ const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'
 for (const file of eventFiles) {
     try {
         const filePath = path.join(eventsPath, file)
-        console.log(`[INFO] Loading file ${filePath}`)
+        console.log(`Loading file ${filePath}`)
 
         const {default: event} = await import(pathToFileURL(filePath).href)
         if (event.once) {
@@ -38,7 +35,7 @@ for (const file of eventFiles) {
         } else {
             client.on(event.name, (...args) => event.execute(...args))
         }
-        console.log(`[INFO] - Loaded event ${file}`)
+        console.log(`- Loaded event ${file}`)
     } catch (error) {
         console.error(`[ERROR] Failed to load event ${file}: ${error}`)
     }

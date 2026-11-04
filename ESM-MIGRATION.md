@@ -21,5 +21,5 @@ or to release modules retained by repeated reloads.
 Migration validation included source syntax checks, importing all 30 non-entry
 modules, serializing all 8 command payloads, and startup/deployment dry runs with
 Discord login and REST requests stubbed. No live login or deployment was performed.
-The existing lint errors in `modmailReply.js`, `processBeltMessage.js`, and the
+The existing lint errors in `modmailReply.js`, `processBeltMessage-old.js`, and the
 ignored `src/obsolete/testRequest.js` remain.

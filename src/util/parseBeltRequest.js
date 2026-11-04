@@ -27,11 +27,20 @@ export default function parseBeltRequest(messageContent) {
     const notes = actionMatch?.[4].trim()
 
     const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
-    let belt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
-    let evidence = beltMatch?.[2] ?? null
+    const belt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
+    const evidence = beltMatch?.[2] ?? null
 
-    const syncUsernameMatch = new RegExp('u\\/(\\S*)\\b', 'i').exec(messageContent)
-    const syncMatch = syncUsernameMatch?.[1] ? syncUsernameMatch[1] : null
+    let syncUsername
+    let syncTo
+    const redditSyncMatch = new RegExp('u\\/(\\S*)\\b', 'i').exec(messageContent)
+    if (redditSyncMatch) {
+        syncUsername = redditSyncMatch?.[1] ? redditSyncMatch[1] : null
+        syncTo = 'Reddit'
+    } else {
+        const discordSyncMatch = new RegExp('.+@(\\S*)\\b', 'i').exec(messageContent)
+        syncUsername = discordSyncMatch?.[1] ? discordSyncMatch[1] : null
+        syncTo = discordSyncMatch?.[1] ? 'Discord' : null
+    }
 
     return {
         action,
@@ -39,7 +48,8 @@ export default function parseBeltRequest(messageContent) {
         belt,
         evidence,
         notes,
-        syncMatch
+        syncUsername,
+        syncTo
     }
 
 }

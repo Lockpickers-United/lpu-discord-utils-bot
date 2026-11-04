@@ -10,7 +10,7 @@ export async function modmailReply({conversationId, modmailMessage, archive, mod
         refreshToken: refresh_token
     })
     await reddit.getMe()
-    const token = reddit.accessToken
+    //const token = reddit.accessToken
 
     try {
         const convo = await reddit.getNewModmailConversation(conversationId)

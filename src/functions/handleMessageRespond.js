@@ -1,23 +1,23 @@
 import {client} from '../client.js'
-import {MessageFlags, PermissionFlagsBits} from 'discord.js'
+import {PermissionFlagsBits} from 'discord.js'
 import {beltRequestChannelIds, beltRequestsChannelId} from '../data/config.js'
 
-export async function handleReply({message, beltRequest, platform = 'log', replyText}) {
+export async function handleReply({message, platform = 'log', replyText, replyEmbeds}) {
 
     if (!message) throw new Error('No message to reply to.')
-    if (!replyText) throw new Error('No reply text provided.')
+    if (!replyText && !replyEmbeds) throw new Error('No reply provided.')
 
     if (platform === 'Discord' && message) {
-        console.log('handleReply => discord:', replyText)
-        await message.reply({content: replyText.toString()})
+        console.log('handleReply => discord:', replyText ?? '(embeds)')
+        await message.reply(replyEmbeds ? replyEmbeds : {content: replyText.toString()})
     } else if (platform === 'log') {
-        console.log('handleReply => log:', replyText)
+        console.log('handleReply => log:', replyText ?? '(embeds)')
     } else {
-        console.log('handleReply =>', platform, replyText)
+        console.log('handleReply =>', platform, replyText ?? '(embeds)')
     }
 }
 
-export async function handleAnnounce({message, beltRequest, platform = 'log', announceText}) {
+export async function handleAnnounce({message, platform = 'log', announceText}) {
     try {
         if (platform === 'Discord') {
             await channelAnnounce(message, announceText)

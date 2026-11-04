@@ -5,6 +5,17 @@ const allGuilds = [lpuGuildId, mgGuildId]
 const beltRequestsChannelId = '282173282546089985'
 const announcementReactionsId = '1360395141822812311'
 const botSpamId = '628607205419253781'
+const lpuBeltBotId = '541073446839517194'
+const lockyJrId = '1364621479131746396'
+const mgsecureId = '671828049540677682'
+
+const defaults = {
+    guildId: lpuGuildId,
+    beltRequestsId: beltRequestsChannelId,
+    botSpamId,
+    user: {name: 'LockyJr', id: lockyJrId}
+}
+
 
 const beltRequestConfig = {
     lpuGuildId,
@@ -12,9 +23,6 @@ const beltRequestConfig = {
     webhookIds: ['1562548930791739543', '1562162476009660489']
 }
 
-const lpuBeltBotId = '541073446839517194'
-const lockyJrId = '1364621479131746396'
-const mgsecureId = '671828049540677682'
 const allBotIds = [lpuBeltBotId, lockyJrId, mgsecureId]
 const adminAuthorId = '1046777741963440178'
 const modIds = [
@@ -66,6 +74,7 @@ const approvedChannels = {
 }
 
 export {
+    defaults,
     lpuGuildId,
     mgGuildId,
     allGuilds,

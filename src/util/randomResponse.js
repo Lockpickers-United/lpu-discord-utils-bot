@@ -1,11 +1,10 @@
-import {projectRoot} from '../../keys/botConfig.js'
+import {autoResponsesFile} from '../../keys/botConfig.js'
 import fs from 'node:fs/promises'
 import writeJsonFileAtomic from '../util/writeJsonFileAtomic.js'
 import dayjs from 'dayjs'
 
 export async function randomResponse(chance = 90, interval = 'hour') {
 
-    const autoResponsesFile = `${projectRoot}/data/autoResponses.json`
     const respond = Math.floor(Math.random() * 100) >= (100 - chance)
     if (!respond) return false
 

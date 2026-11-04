@@ -2,12 +2,10 @@ import fs from 'fs'
 import {fileURLToPath} from 'url'
 import {dirname} from 'path'
 import admin from 'firebase-admin'
-import {getFirestore, FieldValue} from 'firebase-admin/firestore'
-import {denyRequest} from '../functions/handleBeltMessage.js'
+import {getFirestore} from 'firebase-admin/firestore'
+import {processUpdatedRecord} from '../functions/processUpdatedRecord.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-
-console.log(__dirname)
 
 const serviceAccount = JSON.parse(fs.readFileSync(`${__dirname}/../../keys/lpu-belt-explorer-firebase-adminsdk.json`, 'utf8'))
 const app = admin.initializeApp({
@@ -51,15 +49,10 @@ function startSnapshotListener() {
                         })
 
                         await processUpdatedRecord(change.doc.data())
-
                     }
                 })
-
-
-                // Optional: Emit an event or trigger a callback here if consumers need to react to changes
                 console.log(`Data set ${loaded ? 'updated' : 'loaded'}. Total records: ${activeDataStore.size}`)
                 loaded = true
-
             },
             (error) => {
                 console.error('Firestore snapshot stream broke:', error)
@@ -68,21 +61,9 @@ function startSnapshotListener() {
         )
 }
 
-async function processUpdatedRecord(record) {
-    try {
-        if (record.status === 'processing-deny') {
-            const user = {name: record.lastUpdateBy ?? 'LockyJr'}
-            await denyRequest({request: record, user, force: true})
-        }
-    } catch (error) {
-        console.error('Error processing updated record:', error, record)
-    }
-}
-
 export async function updateBeltRequest(update) {
     const docRef = db.collection('belt-requests').doc(update.id)
     const cleanUpdate = removeEmptyValues(update)
-
     try {
         const result = await db.runTransaction(async (transaction) => {
             const requestDoc = await transaction.get(docRef)
@@ -94,10 +75,8 @@ export async function updateBeltRequest(update) {
             }
             return {...requestDoc?.data(), ...cleanUpdate, revision}
         })
-
         console.log('Transaction successfully committed:', result)
         return result
-
     } catch (error) {
         console.error('Transaction failed or aborted:', error.message)
         throw new Error(`Update failed ${error.message}`)
@@ -105,7 +84,7 @@ export async function updateBeltRequest(update) {
 }
 
 function removeEmptyValues(obj) {
-    return Object.fromEntries(Object.entries(obj).filter(([_, value]) => value !== null && value !== undefined))
+    return Object.fromEntries(Object.entries(obj).filter(([_key, value]) => value !== null && value !== undefined))
 }
 
 function handleListenerFailure() {
@@ -124,7 +103,7 @@ function shutdown(signal) {
     if (isShuttingDown) return
     isShuttingDown = true
 
-    console.log(`Received ${signal}. Cleaning up...`)
+    console.log(`\n\nReceived ${signal}. Cleaning up...`)
 
     if (unsubscribe) {
         unsubscribe()
