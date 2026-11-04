@@ -105,7 +105,7 @@ export async function approveRequest({message, beltRequests, request, user, note
             checkoutBy: FieldValue.delete(),
             lastUpdateBy: user.name,
             lastUpdatePlatform: 'Discord',
-            notes: notes ?? request.notes
+            notes: request.notes ?? notes
         }
     })
     try {

@@ -10,7 +10,9 @@ export async function processUpdatedRecord(record) {
     try {
         if (record.status === 'processing-approve') {
             const user = {name: record.lastUpdateBy ?? 'LockyJr'}
-            const response = await approveRequest({beltRequests, request: record, user, force: true})
+            const response = await approveRequest(
+                {beltRequests, request: record, user, notes: record.notes, force: true}
+            )
             if (response) {
                 replyText = response.replyText
                 console.log('Reply text:', replyText)
