@@ -35,7 +35,7 @@ function startSnapshotListener() {
     console.log('Initializing Firestore snapshot listener...')
 
     unsubscribe = db.collection('belt-requests')
-        .where('status', 'in', ['open', 'checked-out', 'incoming-approve', 'incoming-deny', 'processing-approve', 'processing-deny'])
+        .where('status', 'in', ['open', 'checked-out', 'incoming', 'incoming-approve', 'incoming-deny', 'processing-approve', 'processing-deny'])
         .onSnapshot(
             (snapshot) => {
                 snapshot.docChanges().forEach(async (change) => {

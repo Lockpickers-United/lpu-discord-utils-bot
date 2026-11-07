@@ -20,8 +20,10 @@ export async function handleReply({message, platform = 'log', replyText, replyEm
 export async function handleAnnounce({message, platform = 'log', announceText}) {
     try {
         if (platform === 'Discord') {
-            await channelAnnounce(message, announceText)
+            const announcement = await channelAnnounce({message, announceText})
             console.log('handleAnnounce => discord:', announceText)
+            return {success: 'announcement posted', messageId: announcement.messageId}
+
         } else if (platform === 'log') {
             console.log('handleAnnounce => log:', announceText)
         } else {
@@ -33,11 +35,12 @@ export async function handleAnnounce({message, platform = 'log', announceText}) 
     }
 }
 
-export async function channelAnnounce(message, announceText) {
+export async function channelAnnounce({message, announceText}) {
     try {
         const announcementChannel = await getAnnouncementChannel({message})
-        await announcementChannel.send(announceText)
-        return {success: 'announcement posted'}
+        const sentMessage = await announcementChannel.send(announceText)
+        return {success: 'announcement posted', messageId: sentMessage.id}
+
     } catch (err) {
         console.error(`Failed to post announcement: ${err}`)
         throw new Error(`Failed to post announcement: ${err}`)

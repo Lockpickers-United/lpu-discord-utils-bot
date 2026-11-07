@@ -4,7 +4,7 @@ import getChannelInfo from '../functions/getChannelInfo.js'
 import {beltRequestChannelIds, lpuBeltBotId, beltRequestConfig} from '../data/config.js'
 import isValidEvent from '../functions/isValidEvent.js'
 import {helpText, modHelpText} from '../data/helpText.js'
-import {processBotRequest} from '../functions/processBotRequest.js'
+import {processIncomingRequest} from '../functions/processIncomingRequest.js'
 import processBeltMessage from '../functions/processBeltMessage.js'
 
 const keywords = ['channel info']
@@ -52,7 +52,7 @@ export default {
             && beltRequestConfig.channelIds.includes(message.channelId)
         )
         if (acceptedRequest && requestEmbed) {
-            await processBotRequest(message, requestEmbed)
+            await processIncomingRequest({message, requestEmbed})
             return
         }
 
@@ -65,6 +65,7 @@ export default {
         const mentioned = message.mentions.has(message.client.user)
         if (mentioned) {
             console.log(`${message.author.username} mentioned me: ${messageContent}`)
+            console.log('mentioned', message.attachments)
         } else if (lpuBeltBotMentioned) {
             console.log(`${message.author.username} mentioned @LPUBeltBot.`)
         } else {

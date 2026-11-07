@@ -13,61 +13,76 @@ import {processListRequest} from './processListRequest.js'
 import {client} from '../client.js'
 import {beltRequestsChannelId} from '../data/config.js'
 
-export async function handleBeltRequest({message, params}) {
-    const {
-        userId,
-        belt
-    } = params
 
-    const id = genHexString(8)
-    const update = buildUpdate({
-        request: {id},
-        status: 'open',
-        fields: {
-            ...params,
-            dateAdded: dayjs().format(),
-            messageId: message.id
-        }
-    })
-
-    try {
-        await updateBeltRequest(update)
-    } catch (error) {
-        throw new Error(`Error while updating creating ${id}: ${error.message}`)
-    }
+export async function replacePreviousRequests({id, userId, belt, messageId}) {
 
     const beltRequests = getOpenBeltRequests()
-
-    const existingRequest = beltRequests
-        .find(
+    const existingRequests = beltRequests
+        .filter(
             request => request.userId === userId
                 && request.belt === belt
-                && request.status === 'open'
+                && ['open', 'checked-out', 'incoming'].includes(request.status)
+                && request.id !== id
         )
 
     let replaceText
     let warning
 
-    if (existingRequest) {
-        const replaceUpdate = buildUpdate({
-            request: existingRequest,
-            status: 'replaced',
+    if (existingRequests.length) {
+        replaceText = `\nThis replaces your previous ${belt} requests.`
+        for (const request of existingRequests) {
+            const replaceUpdate = buildUpdate({
+                request: request,
+                status: 'replaced',
+                fields: {
+                    lastUpdateBy: 'LockyJr',
+                    messageId: messageId,
+                    updateMessageId: messageId
+                }
+            })
+            try {
+                await updateBeltRequest(replaceUpdate)
+            } catch (error) {
+                warning = `Error while replacing existing request ${request.id}: ${error.message}`
+            }
+        }
+    }
+    return {warning, replaceText}
+}
+
+
+export async function handleBeltRequest({message, params, incomingRecord}) {
+
+    const id = incomingRecord?.id ?? genHexString(8)
+    const belt = incomingRecord?.belt ?? params?.belt
+    const userId = incomingRecord?.userId ?? params?.userId
+
+    let update
+    if (!incomingRecord) {
+        update = buildUpdate({
+            request: {id},
+            status: 'open',
             fields: {
-                lastUpdateBy: 'LockyJr',
-                messageId: message.id,
-                updateMessageId: message.id
+                ...params,
+                dateAdded: dayjs().format(),
+                messageId: message?.id
             }
         })
-
         try {
-            await updateBeltRequest(replaceUpdate)
-            replaceText = `\nThis replaces your previous ${belt} request.`
+            await updateBeltRequest(update)
         } catch (error) {
-            warning = `Error while replacing existing request ${existingRequest.id}: ${error.message}`
+            throw new Error(`Error while creating ${id}: ${error.message}`)
         }
     }
 
-    return {beltRequest: update, warning, replaceText}
+    const {warning, replaceText} = await replacePreviousRequests({
+        id: id,
+        userId: userId,
+        belt: belt,
+        messageId: message?.id
+    })
+
+    return {beltRequest: update || incomingRecord, warning, replaceText}
 }
 
 // APPROVE
@@ -126,7 +141,7 @@ export async function approveRequest({message, beltRequests, request, user, note
             syncResult = await setDiscordRole(message, {username: syncUsername, belt})
             syncMessage = '\n  (You\'ve also been flagged on Discord.)'
             syncResult.result = syncResult.status === 'success'
-                ? `Successfully set ${belt} role for @${syncUsername} on Discord.`
+                ? `(Also set ${belt} role for @${syncUsername} on Discord.)`
                 : `Failed to set Discord role for @${syncUsername}`
 
         } catch (err) {
@@ -142,7 +157,7 @@ export async function approveRequest({message, beltRequests, request, user, note
             syncResult = await setRedditFlair('lockpicking', syncUsername, belt)
             syncMessage = '\n  (You\'ve also been flaired on Reddit.)'
             syncResult.result = syncResult.status === 'success'
-                ? `Successfully set ${belt} flair for u/${syncUsername} on Reddit.`
+                ? `(Also set ${belt} flair for u/${syncUsername} on Reddit.)`
                 : `Failed to set Reddit flair for u/${syncUsername}`
         } catch (err) {
             console.error('Failed to set user flair', err)
@@ -193,7 +208,7 @@ export async function approveRequest({message, beltRequests, request, user, note
     const currentBeltIndex = beltRoles.indexOf(request.belt)
 
     const lowerBeltRequests = beltRequests
-        .filter(r => r.userId === request.userId && r.status === 'open')
+        .filter(r => r.userId === request.userId && ['open', 'checked-out'].includes(r.status))
         .filter(r => beltRoles.indexOf(r.belt) < currentBeltIndex)
 
     const supersededResponses = []
@@ -241,7 +256,7 @@ export async function denyRequest({message, request, user, force = false, notes}
             checkoutBy: FieldValue.delete(),
             lastUpdateBy: user.name,
             lastUpdatePlatform: 'Discord',
-            notes
+            notes: request?.notes ?? notes
         }
     })
     try {
@@ -339,6 +354,8 @@ export default async function processBeltMessage(message) {
         return
     }
 
+    const attachments = message.attachments?.map(attachment => attachment.url)
+
     // REQUEST
     if (action === 'request') {
         let replyText
@@ -352,7 +369,8 @@ export default async function processBeltMessage(message) {
             currentBelt: 'tk',
             requestId: message.id,
             syncTo,
-            syncUsername
+            syncUsername,
+            attachments
         }
 
         if (!belt || !evidence) {
@@ -360,7 +378,7 @@ export default async function processBeltMessage(message) {
                 + '`@LockyJr request [Belt Color] [Lock model] https://image_or_video_link_here`\n'
         } else {
             try {
-                await handleBeltRequest({beltRequests, message, params}).then(response => {
+                await handleBeltRequest({message, params}).then(response => {
                     replyText = `<@${message.author.id}> thanks for your ${belt} request!`
                         + `${response.replaceText || ''}\n(id: ${response?.beltRequest?.id})`
                 })

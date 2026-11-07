@@ -4,6 +4,7 @@ import {randomResponse} from '../util/randomResponse.js'
 import {getOpenBeltRequests} from '../data/dataStore.js'
 import {setDeepPush} from '../util/setDeep.js'
 import {getSortComparator} from '../util/sortComparators.js'
+import dayjs from 'dayjs'
 
 export async function processListRequest({listType = 'embeds'}) {
 
@@ -67,7 +68,7 @@ export async function processListRequest({listType = 'embeds'}) {
                 requestsText += `   ${request.belt}${reviewText}\n`
                 if (request.redditUsername)
                     requestsText += `   Reddit: u/${request.redditUsername}\n`
-                requestsText += `   Date: ${request.dateAdded}\n`
+                requestsText += `   Date: ${dayjs(request.dateAdded).format('YYYY-MM-DD')}\n`
                 requestsText += `   Link: https://discord.com/channels/140129091796992000/282173282546089985/${request.messageId}\n`
                 requestsText += `   ID: ${request.id}\n\n`
             })
@@ -93,7 +94,7 @@ export async function processListRequest({listType = 'embeds'}) {
                         requestText += `Sync to Reddit: u/${request.syncUsername}\n`
                     if (request.syncUsername && request.syncTo === 'Discord')
                         requestText += `Sync to Discord: @${request.syncUsername}\n`
-                    requestText += `${request.dateAdded} `
+                    requestText += `${dayjs(request.dateAdded).format('YYYY-MM-DD')} `
                     requestText += ` https://discord.com/channels/140129091796992000/282173282546089985/${request.messageId}\n`
                     requestText += `ID: ${request.id}\n\n`
                 })
