@@ -26,9 +26,10 @@ export default function parseBeltRequest(messageContent) {
     const id = actionMatch?.[3]
     const notes = actionMatch?.[4].trim()
 
-    const beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
-    const belt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
-    const evidence = beltMatch?.[2] ?? null
+    let beltMatch = new RegExp(`\\brequest\\s+(${alternatives})\\s*(\\S*)`, 'i').exec(messageContent)
+    let belt = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
+    let evidence = beltMatch?.[2] ?? null
+    let lockId
 
     let syncUsername
     let syncTo
@@ -42,6 +43,14 @@ export default function parseBeltRequest(messageContent) {
         syncTo = discordSyncMatch?.[1] ? 'Discord' : null
     }
 
+    if (action === 'vote') {
+        beltMatch = new RegExp(`\\bvote\\s+(\\S{8})\\s+(${alternatives})\\s*(.*)`, 'is').exec(messageContent)
+        lockId = beltMatch?.[1] ? beltStrings[beltMatch?.[1].toLowerCase()] : null
+        belt = beltMatch?.[2] ? beltStrings[beltMatch?.[2].toLowerCase()] : null
+        evidence = beltMatch?.[3] ?? null
+    }
+    lockId = lockId ? {lockId} : null
+
     return {
         action,
         id,
@@ -49,7 +58,8 @@ export default function parseBeltRequest(messageContent) {
         evidence,
         notes,
         syncUsername,
-        syncTo
+        syncTo,
+        ...lockId
     }
 
 }

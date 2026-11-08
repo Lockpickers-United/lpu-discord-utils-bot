@@ -6,6 +6,8 @@ import isValidEvent from '../functions/isValidEvent.js'
 import {helpText, modHelpText} from '../data/helpText.js'
 import {processIncomingRequest} from '../functions/processIncomingRequest.js'
 import processBeltMessage from '../functions/processBeltMessage.js'
+import {voteUsers} from '../../keys/users.js'
+import processClassificationVote from '../functions/processClassificationVote.js'
 
 const keywords = ['channel info']
 const beltKeywords = [
@@ -19,7 +21,8 @@ const beltKeywords = [
     'delete', 'rm',
     'retry',
     'pend', 'moreinfo', 'info', 'history',
-    'sync', 'stats', 'delete_all', 'help'
+    'sync', 'stats', 'delete_all', 'help',
+    'vote'
 ]
 const allKeywords = [...keywords, ...beltKeywords]
 const warnResponse = true
@@ -64,8 +67,8 @@ export default {
         const lpuBeltBotMentioned = message.mentions.users?.has(lpuBeltBotId)
         const mentioned = message.mentions.has(message.client.user)
         if (mentioned) {
-            console.log(`${message.author.username} mentioned me: ${messageContent}`)
-            console.log('mentioned', message.attachments)
+            //console.log(`${message.author.username} mentioned me: ${messageContent}`)
+            //console.log('mentioned', message.attachments)
         } else if (lpuBeltBotMentioned) {
             console.log(`${message.author.username} mentioned @LPUBeltBot.`)
         } else {
@@ -94,8 +97,6 @@ export default {
             }
         }
 
-        //console.log('messageContent', messageContent)
-
         if (mentioned && messageContent.toLowerCase().includes('channel info')) {
             await getChannelInfo(message)
             return
@@ -123,6 +124,11 @@ export default {
         }
 
         if (!allKeywords.some(substr => messageContent.toLowerCase().includes(substr))) {
+            return
+        }
+
+        if (messageContent.toLowerCase().includes('[me] vote') && voteUsers.includes(message.author.id)) {
+            processClassificationVote(message)
             return
         }
 
